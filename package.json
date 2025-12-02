@@ -1,0 +1,13 @@
+{
+  "name": "prime-excellence-game-backend",
+  "version": "1.0.0",
+  "description": "Backend for the Prime Excellence Daycare School Computer Game.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0"
+  }
+}
