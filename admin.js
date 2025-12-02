@@ -1,4 +1,5 @@
-const API_URL = 'https://game-a5vt.onrender.com/api'; // The full URL of your backend API
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocal ? 'http://localhost:3000/api' : 'https://game-a5vt.onrender.com/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchAllStudents();

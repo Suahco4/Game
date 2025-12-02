@@ -1,5 +1,7 @@
 // Global vars
-const API_URL = 'https://game-a5vt.onrender.com/api'; // <-- This is your live backend URL
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocal ? 'http://localhost:3000/api' : 'https://game-a5vt.onrender.com/api';
+
 let soundEnabled = true;
 let musicEnabled = true;
 let voiceEnabled = true;
@@ -123,16 +125,33 @@ function showConfetti() {
 }
 
 // Function to load a student profile (or create a default one)
-async function loadDefaultStudent(studentId = 'guest_player') {
+async function loginStudent() {
+    const studentId = document.getElementById('student-id-edit').value.trim();
+    if (!studentId) {
+        alert('Please enter your Student ID.');
+        return;
+    }
+
     try {
-        // The backend automatically creates a new student if the ID doesn't exist for this ID.
-        const response = await fetch(`${API_URL}/students/${studentId}`); 
+        const response = await fetch(`${API_URL}/students/${studentId}`);
         currentStudent = await response.json();
         if (!response.ok) throw new Error(currentStudent.message || 'Failed to log in.');
 
         initDisplay();
         playSound('click');
-        speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
+        speak(`Welcome back, ${currentStudent.name}! Please choose a game to play.`, true);
+    } catch (error) {
+        console.error('Error logging in:', error);
+        alert('Could not log in. Please check the Student ID or make sure the server is running.');
+    }
+}
+
+async function loadDefaultStudent() {
+    try {
+        // This function is now primarily for ensuring the UI is set up correctly on initial load.
+        // It doesn't log anyone in.
+        document.getElementById('games-section-wrapper').classList.remove('hidden');
+        speak("Welcome to the Prime Excellence Daycare School Computer Game! Please enter your student ID to begin.", true);
     } catch (error) {
         console.error('Error starting session:', error);
         alert('Could not connect to the server. Please make sure the backend is running.');
@@ -141,7 +160,7 @@ async function loadDefaultStudent(studentId = 'guest_player') {
 
 function showStudentForm() {
     // With no login form, this function now just ensures the game wrapper is visible
-    document.getElementById('games-section-wrapper').style.display = 'block';
+    document.getElementById('games-section-wrapper').classList.remove('hidden');
 }
 
 async function deleteStudentRecord() {
@@ -151,7 +170,7 @@ async function deleteStudentRecord() {
         const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Failed to delete student.');
         alert(`All records for ${currentStudent.name} have been deleted. Loading a new guest profile.`);
-        currentStudent = null;
+        window.location.reload(); // Reload the page to go back to the login screen
         loadDefaultStudent(); // Load a new default student after deletion
     } catch (error) {
         console.error('Error deleting student record:', error);
@@ -194,17 +213,18 @@ function initDisplay() {
     if (!currentStudent) return;
     const overallScore = calculateOverallScore();
 
-    // Update profile display
-    document.getElementById('student-name-display').textContent = currentStudent.name;
-    document.getElementById('student-class-display').textContent = currentStudent.class;
+    // Hide the login form and show the student's info
+    document.getElementById('student-profile-edit').classList.add('hidden');
+    document.getElementById('student-profile-display').classList.remove('hidden');
+
+    // Update profile display with Student ID
+    document.getElementById('student-id-display').textContent = currentStudent.studentId;
 
     // Update stats display
     document.getElementById('session-count').textContent = currentStudent.sessions;
     document.getElementById('badge-count').textContent = currentStudent.badges.length;
     document.getElementById('high-score').textContent = currentStudent.highScore;
     document.getElementById('overall-score').textContent = overallScore;
-
-    document.getElementById('games-section-wrapper').style.display = 'block';
     // The welcome message is now handled by loadDefaultStudent
     speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
 }
@@ -350,20 +370,19 @@ function hideSettingsModal() {
 function toggleAdminMode() {
     adminMode = !adminMode;
     const btn = document.getElementById('admin-mode-btn');
-    const editBtn = document.getElementById('edit-profile-btn');
+    const generateBtn = document.getElementById('generate-id-btn');
 
     if (adminMode) {
         btn.textContent = 'Disable Admin Mode 👑';
         btn.classList.remove('btn-special');
         btn.classList.add('btn-danger');
         speak("Admin mode enabled.", true);
-        if (editBtn) editBtn.style.display = 'inline-block';
+        if (generateBtn) generateBtn.classList.remove('hidden');
     } else {
         btn.textContent = 'Enable Admin Mode 👑';
         btn.classList.add('btn-special');
         btn.classList.remove('btn-danger');
-        if (editBtn) editBtn.style.display = 'none';
-        hideEditProfileForm(); // Hide form if it's open
+        if (generateBtn) generateBtn.classList.add('hidden');
     }
 }
 
@@ -404,6 +423,44 @@ async function saveProfileChanges() {
     } catch (error) {
         console.error('Error saving profile:', error);
         alert('Could not save profile changes to the server.');
+    }
+}
+
+async function generateStudentId() {
+    if (!adminMode) return;
+
+    // Generate a random 6-digit number
+    const newId = Math.floor(100000 + Math.random() * 900000);
+    speak(`New student I.D. is ${newId}. Please enter the student's name.`, true);
+
+    const name = prompt(`New Student ID: ${newId}\n\nEnter the new student's name:`);
+    if (!name) {
+        speak("Canceled.", true);
+        return;
+    }
+
+    const studentClass = prompt(`Enter class for ${name}:`, "Fun Class");
+    if (!studentClass) {
+        speak("Canceled.", true);
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/admin/students`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentId: newId.toString(), name, class: studentClass })
+        });
+
+        if (!response.ok) throw new Error('Server responded with an error.');
+
+        const newStudent = await response.json();
+        alert(`Successfully created profile for ${newStudent.name} with ID ${newStudent.studentId}.`);
+        speak(`Profile created for ${newStudent.name}.`, true);
+    } catch (error) {
+        console.error('Error creating student:', error);
+        alert('Failed to create new student profile. The ID might already exist, or the server may be down.');
+        speak("Error creating profile.", true);
     }
 }
 
@@ -2405,7 +2462,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('badge-btn').addEventListener('click', showBadges);
     document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
     document.getElementById('top-students-session-btn').addEventListener('click', startTopStudentsSession);
+    document.getElementById('login-btn').addEventListener('click', loginStudent);
     document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
+    document.getElementById('generate-id-btn').addEventListener('click', generateStudentId);
     document.getElementById('admin-mode-btn').addEventListener('click', toggleAdminMode);
     document.getElementById('close-settings-btn').addEventListener('click', hideSettingsModal);
     document.getElementById('change-student-btn').addEventListener('click', () => { hideSettingsModal(); showStudentForm(); });
@@ -2421,8 +2480,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach event listeners for actions that still make sense
     document.addEventListener('keydown', globalKeyHandler);
-    document.getElementById('delete-student-btn').addEventListener('click', deleteStudentRecord);
-    document.getElementById('save-profile-btn').addEventListener('click', saveProfileChanges);
+    document.getElementById('delete-student-btn').addEventListener('click', deleteStudentRecord); // This button is in the settings modal
+    // document.getElementById('save-profile-btn').addEventListener('click', saveProfileChanges); // This button was removed
 
     // Use event delegation for the edit button which might be added dynamically
     document.getElementById('session-info').addEventListener('click', (e) => {

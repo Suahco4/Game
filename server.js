@@ -1,16 +1,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const cors = require('cors'); // Import the cors package
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // To parse JSON bodies
 app.use(express.static(path.join(__dirname, '/'))); // Serve static files
 
 // --- MongoDB Connection ---
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/schoolGame';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/Gamedb';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB.'))

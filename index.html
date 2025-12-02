@@ -21,16 +21,12 @@
         
         <div id="games-section-wrapper" class="hidden">
             <div id="session-info">
-                <div id="student-profile-display">
-                    Student: <span id="student-name-display">Super Student</span> | Class: <span id="student-class-display">Fun Class</span>
-                </div>
-                <div id="student-profile-edit" class="hidden">
-                    <label for="student-name-edit">Student:</label>
-                    <input type="text" id="student-name-edit" class="inline-edit" placeholder="Enter student name" title="Student name">
-                    <span aria-hidden="true"> | </span>
-                    <label for="student-class-edit">Class:</label>
-                    <input type="text" id="student-class-edit" class="inline-edit" placeholder="Enter class name" title="Class name">
-                    <button id="save-profile-btn" class="btn btn-primary btn-small">Save</button>
+                <div id="student-profile-display">Student ID: <span id="student-id-display">Not Logged In</span></div>
+                <div id="student-profile-edit">
+                    <label for="student-id-edit">Student ID:</label>
+                    <input type="text" id="student-id-edit" class="inline-edit" placeholder="Enter your ID number" title="Student ID">
+                    <button id="login-btn" class="btn btn-primary btn-small" style="margin-right: 5px;">Login</button>
+                    <button id="forgot-id-btn" class="btn btn-secondary btn-small">Forgot ID?</button>
                 </div>
                 <div id="stars-bar"><div id="stars-fill"></div></div>
                 <div id="student-stats">Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span></div>
@@ -125,6 +121,7 @@
                 <h3>Player & Data Management</h3>
                 <button id="admin-mode-btn" class="btn btn-special">Enable Admin Mode 👑</button>
                 <button id="reset-time-btn" class="btn btn-secondary">Reset All Times ⏱️</button>
+                <button id="generate-id-btn" class="btn btn-secondary hidden">Generate Student ID 🆔</button>
                 <button id="delete-student-btn" class="btn btn-danger">Delete Current Student 🗑️</button>
             </div>
 
