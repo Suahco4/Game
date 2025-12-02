@@ -125,24 +125,25 @@ function showConfetti() {
 }
 
 // Function to load a student profile (or create a default one)
-async function loginStudent() {
+async function findAndPlay() {
     const studentId = document.getElementById('student-id-edit').value.trim();
     if (!studentId) {
         alert('Please enter your Student ID.');
         return;
     }
 
+    // The backend will find the student or create a new one if the ID is new.
     try {
         const response = await fetch(`${API_URL}/students/${studentId}`);
         currentStudent = await response.json();
-        if (!response.ok) throw new Error(currentStudent.message || 'Failed to log in.');
+        if (!response.ok) throw new Error(currentStudent.message || 'Failed to load profile.');
 
         initDisplay();
         playSound('click');
-        speak(`Welcome back, ${currentStudent.name}! Please choose a game to play.`, true);
+        speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
     } catch (error) {
-        console.error('Error logging in:', error);
-        alert('Could not log in. Please check the Student ID or make sure the server is running.');
+        console.error('Error finding or creating student:', error);
+        alert('Could not start the game. Please check the Student ID or make sure the server is running.');
     }
 }
 
@@ -218,6 +219,8 @@ function initDisplay() {
     document.getElementById('student-profile-display').classList.remove('hidden');
 
     // Update profile display with Student ID
+    document.getElementById('student-name-display').textContent = currentStudent.name;
+    document.getElementById('student-class-display').textContent = currentStudent.class;
     document.getElementById('student-id-display').textContent = currentStudent.studentId;
 
     // Update stats display
@@ -429,8 +432,9 @@ async function saveProfileChanges() {
 async function generateStudentId() {
     if (!adminMode) return;
 
-    // Generate a random 6-digit number
-    const newId = Math.floor(100000 + Math.random() * 900000);
+    // Generate 7 random digits, padded with leading zeros if necessary
+    const randomPart = String(Math.floor(Math.random() * 10000000)).padStart(7, '0');
+    const newId = `044${randomPart}`;
     speak(`New student I.D. is ${newId}. Please enter the student's name.`, true);
 
     const name = prompt(`New Student ID: ${newId}\n\nEnter the new student's name:`);
@@ -2462,14 +2466,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('badge-btn').addEventListener('click', showBadges);
     document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
     document.getElementById('top-students-session-btn').addEventListener('click', startTopStudentsSession);
-    document.getElementById('login-btn').addEventListener('click', loginStudent);
+    document.getElementById('play-btn').addEventListener('click', findAndPlay);
     document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
     document.getElementById('generate-id-btn').addEventListener('click', generateStudentId);
     document.getElementById('admin-mode-btn').addEventListener('click', toggleAdminMode);
     document.getElementById('close-settings-btn').addEventListener('click', hideSettingsModal);
-    document.getElementById('change-student-btn').addEventListener('click', () => { hideSettingsModal(); showStudentForm(); });
     document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoice);
-    document.getElementById('music-toggle-btn').addEventListener('click', toggleMusic);
     document.getElementById('custom-art-btn').addEventListener('click', () => { hideSettingsModal(); showArtCustomModal(); });
     document.getElementById('hide-badges-btn').addEventListener('click', hideBadges);
     document.getElementById('close-leaderboard-btn').addEventListener('click', hideLeaderboard);
@@ -2490,10 +2492,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.querySelectorAll('.game-card').forEach(card => {
-        card.addEventListener('click', () => {
+    // Use event delegation for all game cards
+    document.getElementById('games-section-wrapper').addEventListener('click', (e) => {
+        const card = e.target.closest('.game-card');
+        if (card) {
             const gameId = parseInt(card.dataset.gameId, 10);
             loadGame(gameId);
-        });
+        }
     });
 });

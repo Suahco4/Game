@@ -21,12 +21,11 @@
         
         <div id="games-section-wrapper" class="hidden">
             <div id="session-info">
-                <div id="student-profile-display">Student ID: <span id="student-id-display">Not Logged In</span></div>
+                <div id="student-profile-display" class="hidden">Student: <span id="student-name-display"></span> | Class: <span id="student-class-display"></span> | ID: <span id="student-id-display"></span></div>
                 <div id="student-profile-edit">
                     <label for="student-id-edit">Student ID:</label>
                     <input type="text" id="student-id-edit" class="inline-edit" placeholder="Enter your ID number" title="Student ID">
-                    <button id="login-btn" class="btn btn-primary btn-small" style="margin-right: 5px;">Login</button>
-                    <button id="forgot-id-btn" class="btn btn-secondary btn-small">Forgot ID?</button>
+                    <button id="play-btn" class="btn btn-primary btn-small" style="margin-right: 5px;">Play Game 🚀</button>
                 </div>
                 <div id="stars-bar"><div id="stars-fill"></div></div>
                 <div id="student-stats">Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span></div>
@@ -127,7 +126,6 @@
 
             <div class="settings-section">
                 <h3>Game Customization</h3>
-                <button id="music-toggle-btn" class="btn btn-primary">Mute Music 🔇</button>
                 <button id="voice-toggle-btn" class="btn btn-primary">Mute Voice 🔇</button>
                 <button id="custom-art-btn" class="btn btn-primary">Customize Art 🎨</button>
             </div>
@@ -148,11 +146,6 @@
             <button id="mobile-start-btn" class="btn btn-primary">Start Adventure! 🎮</button>
         </div>
     </div>
-
-    <audio id="background-music" loop>
-        <source src="Music/upbeat-adventurous-theme.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
 
     <script src="script.js"></script>
 </body>

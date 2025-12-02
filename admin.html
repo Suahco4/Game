@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="Images/favicon.ico" type="image/x-icon">
     <title>Admin Control Panel</title>
     <link rel="stylesheet" href="style.css">
     <style>
@@ -25,13 +26,20 @@
 
         <div id="add-student-form">
             <h3>Add New Student</h3>
-            <input type="text" id="new-student-id" placeholder="Student ID" required>
+            <input type="text" id="new-student-id" placeholder="Student ID" required style="margin-right: 5px;" readonly>
+            <button id="generate-admin-id-btn" class="btn btn-secondary">Generate ID</button>
             <input type="text" id="new-student-name" placeholder="Student Name" required>
             <input type="text" id="new-student-class" placeholder="Class Name" required>
             <button id="add-student-btn" class="btn btn-primary">Add Student</button>
+            <button id="save-changes-btn" class="btn btn-primary hidden">Save Changes</button>
+            <button id="cancel-edit-btn" class="btn btn-secondary hidden">Cancel</button>
         </div>
 
-        <p>Here you can see all student progress in the database.</p>
+        <div id="search-container" style="margin-bottom: 20px;">
+            <h3>Search Students</h3>
+            <input type="text" id="search-input" placeholder="Search by Name or ID..." style="width: 100%; padding: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ddd;">
+        </div>
+
         <table>
             <thead>
                 <tr><th>Student ID</th><th>Name</th><th>Class</th><th>Sessions</th><th>Badges</th><th>High Score</th><th>Overall Score</th><th>Actions</th></tr>
