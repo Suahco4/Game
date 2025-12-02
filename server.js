@@ -12,7 +12,7 @@ app.use(express.json()); // To parse JSON bodies
 app.use(express.static(path.join(__dirname, '/'))); // Serve static files
 
 // --- MongoDB Connection ---
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/Gamedb';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/PrimeExcellenceDB';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB.'))
@@ -34,7 +34,8 @@ const studentSchema = new mongoose.Schema({
     sessions: { type: Number, default: 0 },
     badges: [badgeSchema],
     highScore: { type: Number, default: 0 },
-    overallScore: { type: Number, default: 0 }
+    overallScore: { type: Number, default: 0 },
+    timeSpent: { type: Map, of: Number, default: {} }
 });
 
 const Student = mongoose.model('Student', studentSchema);
@@ -87,6 +88,52 @@ app.post('/api/admin/students', async (req, res) => {
         res.status(201).json(newStudent);
     } catch (error) {
         res.status(500).json({ message: 'Error creating student', error });
+    }
+});
+
+// POST: End a game session and save progress
+app.post('/api/sessions', async (req, res) => {
+    try {
+        const { studentId, gameNum, score, misses, timeSpent } = req.body;
+
+        const student = await Student.findOne({ studentId });
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found.' });
+        }
+
+        // Update stats
+        student.sessions += 1;
+        if (score > student.highScore) {
+            student.highScore = score;
+        }
+
+        // Update time spent for the specific game
+        const timeSpentKey = `game${gameNum}`;
+        const existingTime = student.timeSpent.get(timeSpentKey) || 0;
+        student.timeSpent.set(timeSpentKey, existingTime + timeSpent);
+
+        let newBadge = null;
+        // Badge logic: Award a badge if the score is over a certain threshold and a badge for this game doesn't already exist
+        if (score > 20 && !student.badges.some(b => b.game === gameNum)) {
+            newBadge = {
+                type: `Master of Game ${gameNum}`,
+                game: gameNum,
+                date: new Date().toLocaleDateString(),
+                score: score
+            };
+            student.badges.push(newBadge);
+        }
+
+        // Recalculate overall score
+        if (student.badges.length > 0) {
+            const sumOfScores = student.badges.reduce((acc, badge) => acc + badge.score, 0);
+            student.overallScore = Math.round(sumOfScores / student.badges.length);
+        }
+
+        await student.save();
+        res.status(200).json({ student, newBadge });
+    } catch (error) {
+        res.status(500).json({ message: 'Error saving session data', error });
     }
 });
 
