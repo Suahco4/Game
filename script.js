@@ -1,5 +1,5 @@
 // Global vars
-const API_URL = 'https://game-backend.onrender.com/api'; // <-- Paste your backend URL here
+const API_URL = 'https://game-a5vt.onrender.com/api'; // <-- This is your live backend URL
 let soundEnabled = true;
 let musicEnabled = true;
 let voiceEnabled = true;
@@ -137,11 +137,8 @@ async function startStudentSession() {
     }
 
     try {
-        const response = await fetch(`${API_URL}/students/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId })
-        });
+        // The backend automatically creates a new student if the ID doesn't exist.
+        const response = await fetch(`${API_URL}/students/${studentId}`);
         currentStudent = await response.json();
         if (!response.ok) throw new Error(currentStudent.message || 'Failed to log in.');
 
