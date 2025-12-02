@@ -217,6 +217,20 @@ body {
     padding: 10px;
     border-radius: 15px;
     word-break: break-word;
+    text-align: center; /* Center align the content */
+}
+.inline-edit {
+    font-family: inherit;
+    font-size: inherit;
+    color: #ff6b35;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #ff6b35;
+    border-radius: 5px;
+    padding: 2px 5px;
+}
+#student-stats {
+    margin-top: 10px;
+    font-size: 0.9em;
 }
 #stars-bar {
     width: 100%;

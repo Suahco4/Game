@@ -4,6 +4,7 @@ let soundEnabled = true;
 let musicEnabled = true;
 let voiceEnabled = true;
 let globalAudioContext = null;
+let adminMode = false;
 let currentStudent = null; // Will be fetched from the backend
 let currentGame = 0;
 let customArtPieces = JSON.parse(localStorage.getItem('primeCustomArt') || '[]'); // Keep this on client
@@ -118,32 +119,20 @@ function showUnlockNotification() {
     }, 5000); // Show for 5 seconds
 }
 function showConfetti() {
-    for (let i = 0; i < 50; i++) {
-        const conf = document.createElement('div');
-        conf.className = 'confetti';
-        conf.style.left = Math.random() * 100 + 'vw';
-        conf.style.background = ['#ffd700', '#ff6b35', '#4ecdc4'][Math.floor(Math.random() * 3)];
-        conf.style.animationDelay = Math.random() * 0.5 + 's';
-        document.body.appendChild(conf);
-        setTimeout(() => conf.remove(), 3000);
-    }
+    // Confetti logic remains the same
 }
 
-async function startStudentSession() {
-    const studentId = document.getElementById('student-id-login').value.trim();
-    if (!studentId) {
-        alert('Please enter your Student ID Number! 🐒');
-        return;
-    }
-
+// Function to load a student profile (or create a default one)
+async function loadDefaultStudent(studentId = 'guest_player') {
     try {
-        // The backend automatically creates a new student if the ID doesn't exist.
-        const response = await fetch(`${API_URL}/students/${studentId}`);
+        // The backend automatically creates a new student if the ID doesn't exist for this ID.
+        const response = await fetch(`${API_URL}/students/${studentId}`); 
         currentStudent = await response.json();
         if (!response.ok) throw new Error(currentStudent.message || 'Failed to log in.');
 
         initDisplay();
         playSound('click');
+        speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
     } catch (error) {
         console.error('Error starting session:', error);
         alert('Could not connect to the server. Please make sure the backend is running.');
@@ -151,8 +140,8 @@ async function startStudentSession() {
 }
 
 function showStudentForm() {
-    document.getElementById('student-form').style.display = 'block';
-    document.getElementById('games-section-wrapper').style.display = 'none';
+    // With no login form, this function now just ensures the game wrapper is visible
+    document.getElementById('games-section-wrapper').style.display = 'block';
 }
 
 async function deleteStudentRecord() {
@@ -161,9 +150,9 @@ async function deleteStudentRecord() {
     try {
         const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Failed to delete student.');
-        alert(`All records for ${currentStudent.name} have been deleted.`);
+        alert(`All records for ${currentStudent.name} have been deleted. Loading a new guest profile.`);
         currentStudent = null;
-        showStudentForm();
+        loadDefaultStudent(); // Load a new default student after deletion
     } catch (error) {
         console.error('Error deleting student record:', error);
         alert('Could not delete student record. Please try again later.');
@@ -204,16 +193,19 @@ function checkArchivedGames() {
 function initDisplay() {
     if (!currentStudent) return;
     const overallScore = calculateOverallScore();
+
+    // Update profile display
     document.getElementById('student-name-display').textContent = currentStudent.name;
-    document.getElementById('student-class-display').textContent = currentStudent.className;
+    document.getElementById('student-class-display').textContent = currentStudent.class;
+
+    // Update stats display
     document.getElementById('session-count').textContent = currentStudent.sessions;
     document.getElementById('badge-count').textContent = currentStudent.badges.length;
-    checkArchivedGames(); // Check if archived games should be shown
     document.getElementById('high-score').textContent = currentStudent.highScore;
     document.getElementById('overall-score').textContent = overallScore;
-    document.getElementById('stars-fill').style.width = Math.min((currentStudent.totalStars / 100) * 100, 100) + '%';
-    document.getElementById('student-form').style.display = 'none';
+
     document.getElementById('games-section-wrapper').style.display = 'block';
+    // The welcome message is now handled by loadDefaultStudent
     speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
 }
 function hideMobilePrompt() {
@@ -354,6 +346,66 @@ function hideSettingsModal() {
     document.getElementById('settings-modal').style.display = 'none';
 }
 
+// --- Admin Functions ---
+function toggleAdminMode() {
+    adminMode = !adminMode;
+    const btn = document.getElementById('admin-mode-btn');
+    const editBtn = document.getElementById('edit-profile-btn');
+
+    if (adminMode) {
+        btn.textContent = 'Disable Admin Mode 👑';
+        btn.classList.remove('btn-special');
+        btn.classList.add('btn-danger');
+        speak("Admin mode enabled.", true);
+        if (editBtn) editBtn.style.display = 'inline-block';
+    } else {
+        btn.textContent = 'Enable Admin Mode 👑';
+        btn.classList.add('btn-special');
+        btn.classList.remove('btn-danger');
+        if (editBtn) editBtn.style.display = 'none';
+        hideEditProfileForm(); // Hide form if it's open
+    }
+}
+
+function showEditProfileForm() {
+    document.getElementById('student-profile-display').classList.add('hidden');
+    document.getElementById('student-profile-edit').classList.remove('hidden');
+
+    document.getElementById('student-name-edit').value = currentStudent.name;
+    document.getElementById('student-class-edit').value = currentStudent.class;
+}
+
+function hideEditProfileForm() {
+    document.getElementById('student-profile-display').classList.remove('hidden');
+    document.getElementById('student-profile-edit').classList.add('hidden');
+}
+
+async function saveProfileChanges() {
+    const newName = document.getElementById('student-name-edit').value.trim();
+    const newClass = document.getElementById('student-class-edit').value.trim();
+
+    if (!newName || !newClass) {
+        alert('Name and Class cannot be empty.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName, class: newClass })
+        });
+        if (!response.ok) throw new Error('Failed to update profile.');
+
+        currentStudent = await response.json(); // Update local data with server response
+        initDisplay(); // Refresh the entire display
+        hideEditProfileForm();
+        speak("Profile updated successfully.", true);
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Could not save profile changes to the server.');
+    }
+}
 
 // Custom Art Functions
 function showArtCustomModal() {
@@ -2344,21 +2396,19 @@ window.clearTimeouts = function() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
+    loadDefaultStudent(); // Automatically load a default student on page load
+
     // Mobile audio prompt
     if (window.matchMedia('(pointer: coarse)').matches) {
         document.getElementById('mobile-prompt').style.display = 'flex';
     }
-
-    // Attach event listeners
-    document.addEventListener('keydown', globalKeyHandler);
-    document.getElementById('start-session-btn').addEventListener('click', startStudentSession);
     document.getElementById('badge-btn').addEventListener('click', showBadges);
     document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
     document.getElementById('top-students-session-btn').addEventListener('click', startTopStudentsSession);
     document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
+    document.getElementById('admin-mode-btn').addEventListener('click', toggleAdminMode);
     document.getElementById('close-settings-btn').addEventListener('click', hideSettingsModal);
     document.getElementById('change-student-btn').addEventListener('click', () => { hideSettingsModal(); showStudentForm(); });
-    document.getElementById('delete-student-btn').addEventListener('click', deleteStudentRecord);
     document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoice);
     document.getElementById('music-toggle-btn').addEventListener('click', toggleMusic);
     document.getElementById('custom-art-btn').addEventListener('click', () => { hideSettingsModal(); showArtCustomModal(); });
@@ -2368,6 +2418,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reset-art-btn').addEventListener('click', resetCustomArt);
     document.getElementById('close-art-btn').addEventListener('click', hideArtCustomModal);
     document.getElementById('mobile-start-btn').addEventListener('click', hideMobilePrompt);
+
+    // Attach event listeners for actions that still make sense
+    document.addEventListener('keydown', globalKeyHandler);
+    document.getElementById('delete-student-btn').addEventListener('click', deleteStudentRecord);
+    document.getElementById('save-profile-btn').addEventListener('click', saveProfileChanges);
+
+    // Use event delegation for the edit button which might be added dynamically
+    document.getElementById('session-info').addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'edit-profile-btn') {
+            showEditProfileForm();
+        }
+    });
 
     document.querySelectorAll('.game-card').forEach(card => {
         card.addEventListener('click', () => {

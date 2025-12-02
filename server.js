@@ -16,13 +16,21 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB.'))
     .catch(err => console.error('MongoDB connection error:', err));
 
+// --- Badge Schema (for embedding) ---
+const badgeSchema = new mongoose.Schema({
+    type: String,
+    game: Number,
+    date: String,
+    score: Number
+});
+
 // --- Mongoose Schema and Model ---
 const studentSchema = new mongoose.Schema({
     studentId: { type: String, required: true, unique: true },
     name: String,
     class: String,
     sessions: { type: Number, default: 0 },
-    badges: { type: [String], default: [] },
+    badges: [badgeSchema],
     highScore: { type: Number, default: 0 },
     overallScore: { type: Number, default: 0 }
 });
@@ -61,6 +69,34 @@ app.put('/api/students/:id', async (req, res) => {
         res.json(updatedStudent);
     } catch (error) {
         res.status(500).json({ message: 'Error updating student data', error });
+    }
+});
+
+// POST: Admin creates a new student
+app.post('/api/admin/students', async (req, res) => {
+    try {
+        const { studentId, name, class: studentClass } = req.body;
+        const newStudent = new Student({
+            studentId,
+            name,
+            class: studentClass
+        });
+        await newStudent.save();
+        res.status(201).json(newStudent);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating student', error });
+    }
+});
+
+// --- Admin Routes ---
+
+// GET: All students for the admin panel
+app.get('/api/admin/students', async (req, res) => {
+    try {
+        const allStudents = await Student.find({}).sort({ name: 1 });
+        res.json(allStudents);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching all students', error });
     }
 });
 

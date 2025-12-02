@@ -19,16 +19,21 @@
 
         <h1>Prime Excellence Daycare School Computer Game 🐒</h1>
         
-        <div id="student-form">
-            <p id="student-form-prompt">Who's playing today? 🐵</p>
-            <input type="text" id="student-id-login" placeholder="Enter Your Student ID Number" required>
-            <button id="start-session-btn" class="btn btn-primary">Load Profile & Start! 🚀</button>
-        </div>
-        
         <div id="games-section-wrapper" class="hidden">
             <div id="session-info">
-                Student: <span id="student-name-display">Super Student</span> | Class: <span id="student-class-display">Fun Class</span> | Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span>
+                <div id="student-profile-display">
+                    Student: <span id="student-name-display">Super Student</span> | Class: <span id="student-class-display">Fun Class</span>
+                </div>
+                <div id="student-profile-edit" class="hidden">
+                    <label for="student-name-edit">Student:</label>
+                    <input type="text" id="student-name-edit" class="inline-edit" placeholder="Enter student name" title="Student name">
+                    <span aria-hidden="true"> | </span>
+                    <label for="student-class-edit">Class:</label>
+                    <input type="text" id="student-class-edit" class="inline-edit" placeholder="Enter class name" title="Class name">
+                    <button id="save-profile-btn" class="btn btn-primary btn-small">Save</button>
+                </div>
                 <div id="stars-bar"><div id="stars-fill"></div></div>
+                <div id="student-stats">Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span></div>
             </div>
             <div id="session-controls">
                 <button id="badge-btn" class="btn btn-primary btn-small">View Badges 🏅</button>
@@ -118,7 +123,7 @@
 
             <div class="settings-section">
                 <h3>Player & Data Management</h3>
-                <button id="change-student-btn" class="btn btn-secondary">Change Student 👤</button>
+                <button id="admin-mode-btn" class="btn btn-special">Enable Admin Mode 👑</button>
                 <button id="reset-time-btn" class="btn btn-secondary">Reset All Times ⏱️</button>
                 <button id="delete-student-btn" class="btn btn-danger">Delete Current Student 🗑️</button>
             </div>

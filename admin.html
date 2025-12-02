@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: 20px; background: #f0f8ff; }
+        #admin-panel { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h1 { color: #ff6b35; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #4ecdc4; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        .btn-danger { padding: 5px 10px; font-size: 14px; }
+        #add-student-form { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        #add-student-form input { padding: 8px; margin-right: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="admin-panel">
+        <h1>Game Admin Control Panel</h1>
+
+        <div id="add-student-form">
+            <h3>Add New Student</h3>
+            <input type="text" id="new-student-id" placeholder="Student ID" required>
+            <input type="text" id="new-student-name" placeholder="Student Name" required>
+            <input type="text" id="new-student-class" placeholder="Class Name" required>
+            <button id="add-student-btn" class="btn btn-primary">Add Student</button>
+        </div>
+
+        <p>Here you can see all student progress in the database.</p>
+        <table>
+            <thead>
+                <tr><th>Student ID</th><th>Name</th><th>Class</th><th>Sessions</th><th>Badges</th><th>High Score</th><th>Overall Score</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="student-table-body"></tbody>
+        </table>
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>
