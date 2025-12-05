@@ -1,5 +1,11 @@
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
-const API_URL = isLocal ? 'http://localhost:3000/api' : 'https://game-a5vt.onrender.com/api';
+
+// Dynamically determine the API URL.
+// If the hostname is localhost, a local IP, or a file path, it constructs a local API URL.
+// Otherwise, it defaults to the production server.
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+const API_URL = isLocal 
+    ? `${window.location.protocol}//${window.location.hostname}:3000/api` 
+    : 'https://game-a5vt.onrender.com/api';
 
 let allStudents = []; // Store all students to enable client-side searching
 let currentViewStudents = []; // The list of students currently being displayed (all or filtered)
