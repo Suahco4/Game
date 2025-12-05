@@ -24,8 +24,8 @@
                 <div id="student-profile-display" class="hidden">Student: <span id="student-name-display"></span> | Class: <span id="student-class-display"></span> | ID: <span id="student-id-display"></span></div>
                 <div id="student-profile-edit">
                     <label for="student-id-edit">Student ID:</label>
-                    <input type="text" id="student-id-edit" class="inline-edit" placeholder="Enter your ID number" title="Student ID">
-                    <button id="play-btn" class="btn btn-primary btn-small" style="margin-right: 5px;">Play Game 🚀</button>
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" id="student-id-edit" class="inline-edit" placeholder="Enter your ID number" title="Student ID" autocorrect="off">
+                    <button id="play-btn" class="btn btn-primary btn-small">Play Game 🚀</button>
                 </div>
                 <div id="stars-bar"><div id="stars-fill"></div></div>
                 <div id="student-stats">Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span></div>
@@ -34,7 +34,6 @@
                 <button id="badge-btn" class="btn btn-primary btn-small">View Badges 🏅</button>
                 <button id="settings-btn" class="btn btn-secondary btn-small">Settings ⚙️</button>
                 <button id="leaderboard-btn" class="btn btn-primary btn-small">Leaderboard 🏆</button>
-                <button id="top-students-session-btn" class="btn btn-special btn-small">Top Students Showcase 🌟</button>
             </div>
 
             <h2 class="games-category-title">Mouse & Coordination</h2>
@@ -66,6 +65,7 @@
                     <button class="game-card delay-11" data-game-id="9" role="button" aria-label="Play Story Self Game"><span class="game-card-content"><span class="game-card-icon">✍️</span> Story Self</span></button>
                     <button class="game-card delay-12" data-game-id="12" role="button" aria-label="Play Paragraph Pro Game"><span class="game-card-content"><span class="game-card-icon">📝</span> Paragraph Pro</span></button>
                     <button class="game-card delay-13" data-game-id="13" role="button" aria-label="Play Candy Sorter Game"><span class="game-card-content"><span class="game-card-icon">🍬</span> Candy Sorter</span></button>
+                    <button class="game-card delay-14" data-game-id="14" role="button" aria-label="Play Memory Melody Game"><span class="game-card-content"><span class="game-card-icon">🧠</span> Memory Melody</span></button>
                 </div>
             </div>
         </div>
@@ -118,9 +118,6 @@
 
             <div class="settings-section">
                 <h3>Player & Data Management</h3>
-                <button id="admin-mode-btn" class="btn btn-special">Enable Admin Mode 👑</button>
-                <button id="reset-time-btn" class="btn btn-secondary">Reset All Times ⏱️</button>
-                <button id="generate-id-btn" class="btn btn-secondary hidden">Generate Student ID 🆔</button>
                 <button id="delete-student-btn" class="btn btn-danger">Delete Current Student 🗑️</button>
             </div>
 

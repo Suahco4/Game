@@ -5,48 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="Images/favicon.ico" type="image/x-icon">
     <title>Admin Control Panel</title>
+    <title>Cosmic Academy Mission Control</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body { padding: 20px; background: #f0f8ff; }
         #admin-panel { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h1 { color: #ff6b35; }
+        h1 { color: #4a90e2; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #4ecdc4; color: white; }
+        th { background-color: #4a90e2; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f1f1f1; }
         .btn-danger { padding: 5px 10px; font-size: 14px; }
         #add-student-form { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
         #add-student-form input { padding: 8px; margin-right: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        #new-student-id { margin-right: 5px; }
+        #search-container { margin-bottom: 20px; }
+    </style>
+    <style>
+        /* Scroll Buttons */
+        #scroll-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #scroll-to-top-btn {
+            display: none; /* Hidden by default, shown via JS */
+            padding: 10px 15px;
+            font-size: 18px;
+        }
+        #scroll-to-bottom-btn {
+            padding: 10px 15px;
+            font-size: 18px;
+        }
+    </style>
+    <style>
+        #search-container h3 { margin-top: 0; }
+        #search-input { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ddd; flex-grow: 1; }
+        #search-controls { display: flex; gap: 10px; align-items: center; }
+        /* Responsive Design for Mobile */
+        @media screen and (max-width: 768px) {
+            body { padding: 10px; }
+            #admin-panel { padding: 15px; }
+
+            /* Form adjustments */
+            #add-student-form {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            #add-student-form input, #add-student-form button {
+                width: 100%;
+                margin-right: 0;
+                box-sizing: border-box; /* Ensures padding doesn't affect width */
+            }
+
+            /* Responsive Table: Transform to card view */
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr { border: 1px solid #ccc; margin-bottom: 10px; border-radius: 8px; }
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+            }
+            td:before {
+                position: absolute;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: bold;
+            }
+        }
+        .copyable-id {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .copyable-id:hover { background-color: #e0f7fa; }
     </style>
 </head>
 <body>
     <div id="admin-panel">
         <h1>Game Admin Control Panel</h1>
-
         <div id="add-student-form">
             <h3>Add New Student</h3>
-            <input type="text" id="new-student-id" placeholder="Student ID" required style="margin-right: 5px;" readonly>
-            <button id="generate-admin-id-btn" class="btn btn-secondary">Generate ID</button>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <input type="text" id="new-student-id" placeholder="Student ID" required style="flex-grow: 1;">
+                <button id="generate-admin-id-btn" class="btn btn-secondary">Generate ID</button>
+            </div>
             <input type="text" id="new-student-name" placeholder="Student Name" required>
             <input type="text" id="new-student-class" placeholder="Class Name" required>
             <button id="add-student-btn" class="btn btn-primary">Add Student</button>
             <button id="save-changes-btn" class="btn btn-primary hidden">Save Changes</button>
-            <button id="cancel-edit-btn" class="btn btn-secondary hidden">Cancel</button>
+            <button id="cancel-edit-btn" class="btn btn-secondary hidden">Cancel Edit</button>
         </div>
 
-        <div id="search-container" style="margin-bottom: 20px;">
+        <div id="search-container">
             <h3>Search Students</h3>
-            <input type="text" id="search-input" placeholder="Search by Name or ID..." style="width: 100%; padding: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ddd;">
+            <div id="search-controls">
+                <input type="text" id="search-input" placeholder="Search by Name or ID...">
+                <button id="export-pdf-btn" class="btn btn-secondary">Export to PDF</button>
+            </div>
         </div>
 
         <table>
             <thead>
-                <tr><th>Student ID</th><th>Name</th><th>Class</th><th>Sessions</th><th>Badges</th><th>High Score</th><th>Overall Score</th><th>Actions</th></tr>
+                <tr>
+                    <th class="sortable" data-sort-by="studentId">Student ID<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="name">Name<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="class">Class<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="sessions">Sessions<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="badges">Badges<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="highScore">High Score<span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort-by="overallScore">Overall Score<span class="sort-indicator"></span></th>
+                    <th>Actions</th>
+                </tr>
             </thead>
             <tbody id="student-table-body"></tbody>
         </table>
+        <div id="pagination-controls">
+            <button id="prev-page-btn" class="btn btn-secondary">&laquo; Previous</button>
+            <span id="page-info"></span>
+            <button id="next-page-btn" class="btn btn-secondary">Next &raquo;</button>
+        </div>
     </div>
+
+    <!-- Scroll Buttons Container -->
+    <div id="scroll-buttons">
+        <button id="scroll-to-top-btn" class="btn btn-secondary" title="Go to top">▲</button>
+        <button id="scroll-to-bottom-btn" class="btn btn-secondary" title="Go to bottom">▼</button>
+    </div>
+    <!-- jsPDF Libraries for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.autotable.min.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

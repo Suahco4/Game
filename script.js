@@ -6,7 +6,6 @@ let soundEnabled = true;
 let musicEnabled = true;
 let voiceEnabled = true;
 let globalAudioContext = null;
-let adminMode = false;
 let currentStudent = null; // Will be fetched from the backend
 let currentGame = 0;
 let customArtPieces = JSON.parse(localStorage.getItem('primeCustomArt') || '[]'); // Keep this on client
@@ -171,6 +170,7 @@ async function deleteStudentRecord() {
         const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Failed to delete student.');
         alert(`All records for ${currentStudent.name} have been deleted. Loading a new guest profile.`);
+        alert(`All records for ${currentStudent.name} have been deleted. Returning to the main console.`);
         window.location.reload(); // Reload the page to go back to the login screen
         loadDefaultStudent(); // Load a new default student after deletion
     } catch (error) {
@@ -255,7 +255,8 @@ const gameTitles = {
     10: 'PC Part Picker',
     11: 'Number Matching',
     12: 'Paragraph Pro',
-    13: 'Candy Sorter'
+    13: 'Candy Sorter',
+    14: 'Memory Melody'
 };
 
 function showBadges() {
@@ -281,85 +282,6 @@ function hideBadges() {
     document.getElementById('badge-modal').style.display = 'none';
 }
 
-// --- Leaderboard Functions ---
-async function showLeaderboard() {
-    playSound('hover');
-
-    try {
-        const response = await fetch(`${API_URL}/leaderboard`);
-        if (!response.ok) throw new Error('Failed to fetch leaderboard.');
-        const leaderboardData = await response.json();
-
-        const listEl = document.getElementById('leaderboard-list');
-        if (leaderboardData && leaderboardData.length > 0) {
-            const icons = ['🥇', '🥈', '🥉'];
-            listEl.innerHTML = leaderboardData.map((student, index) => {
-                const rankIcon = index < 3 ? icons[index] : `<strong>${index + 1}.</strong>`;
-                const studentNameDisplay = index < 3 ? `<strong>${student.name}</strong>` : student.name;
-                return `<li class="leaderboard-item">${rankIcon} ${studentNameDisplay} - ${student.highScore} points</li>`;
-            }).join('');
-        } else {
-            listEl.innerHTML = '<p>No student data available yet. Keep playing!</p>';
-        }
-
-        document.getElementById('leaderboard-modal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        alert('Could not fetch leaderboard data from the server.');
-    }
-}
-function hideLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'none'; }
-
-// --- Top Student Showcase Functions ---
-function startTopStudentsSession() {
-    // Get leaderboard data
-    const leaderboardData = studentList.map(studentName => {
-        const studentBadges = JSON.parse(localStorage.getItem(`primeBadges_${encodeURIComponent(studentName)}`) || '[]');
-        const studentScore = studentBadges.reduce((acc, badge) => acc + badge.score, 0);
-        return { name: studentName, score: studentScore };
-    }).sort((a, b) => b.score - a.score);
-
-    const topStudents = leaderboardData.slice(0, 3);
-
-    if (topStudents.length === 0) {
-        alert("No student data is available to start a showcase session.");
-        return;
-    }
-
-    // Save the original student and disable controls
-    const originalStudent = { ...currentStudent };
-    const controls = document.querySelectorAll('#session-controls button, .game-card');
-    controls.forEach(el => el.disabled = true);
-    speak("Starting the top students showcase!", true);
-
-    let studentIndex = 0;
-
-    function showNextStudent() {
-        if (studentIndex >= topStudents.length) {
-            // End of showcase, restore original student
-            currentStudent = originalStudent;
-            loadStudentData(currentStudent.name);
-            speak("Showcase complete! Welcome back.", true);
-            controls.forEach(el => el.disabled = false);
-            clearTimeout(showcaseTimeout);
-            showcaseTimeout = null;
-            return;
-        }
-
-        const studentToShow = topStudents[studentIndex];
-        const rank = ['First place', 'Second place', 'Third place'][studentIndex];
-        speak(`${rank}, ${studentToShow.name}, with ${studentToShow.score} points!`, true);
-        
-        // Temporarily set and load the top student's data
-        loadStudentData(studentToShow.name);
-
-        studentIndex++;
-        showcaseTimeout = setTimeout(showNextStudent, 5000); // Show each student for 5 seconds
-    }
-
-    showNextStudent();
-}
-
 // --- Settings Modal Functions ---
 function showSettingsModal() {
     playSound('hover');
@@ -367,26 +289,6 @@ function showSettingsModal() {
 }
 function hideSettingsModal() {
     document.getElementById('settings-modal').style.display = 'none';
-}
-
-// --- Admin Functions ---
-function toggleAdminMode() {
-    adminMode = !adminMode;
-    const btn = document.getElementById('admin-mode-btn');
-    const generateBtn = document.getElementById('generate-id-btn');
-
-    if (adminMode) {
-        btn.textContent = 'Disable Admin Mode 👑';
-        btn.classList.remove('btn-special');
-        btn.classList.add('btn-danger');
-        speak("Admin mode enabled.", true);
-        if (generateBtn) generateBtn.classList.remove('hidden');
-    } else {
-        btn.textContent = 'Enable Admin Mode 👑';
-        btn.classList.add('btn-special');
-        btn.classList.remove('btn-danger');
-        if (generateBtn) generateBtn.classList.add('hidden');
-    }
 }
 
 function showEditProfileForm() {
@@ -426,45 +328,6 @@ async function saveProfileChanges() {
     } catch (error) {
         console.error('Error saving profile:', error);
         alert('Could not save profile changes to the server.');
-    }
-}
-
-async function generateStudentId() {
-    if (!adminMode) return;
-
-    // Generate 7 random digits, padded with leading zeros if necessary
-    const randomPart = String(Math.floor(Math.random() * 10000000)).padStart(7, '0');
-    const newId = `044${randomPart}`;
-    speak(`New student I.D. is ${newId}. Please enter the student's name.`, true);
-
-    const name = prompt(`New Student ID: ${newId}\n\nEnter the new student's name:`);
-    if (!name) {
-        speak("Canceled.", true);
-        return;
-    }
-
-    const studentClass = prompt(`Enter class for ${name}:`, "Fun Class");
-    if (!studentClass) {
-        speak("Canceled.", true);
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/admin/students`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId: newId.toString(), name, class: studentClass })
-        });
-
-        if (!response.ok) throw new Error('Server responded with an error.');
-
-        const newStudent = await response.json();
-        alert(`Successfully created profile for ${newStudent.name} with ID ${newStudent.studentId}.`);
-        speak(`Profile created for ${newStudent.name}.`, true);
-    } catch (error) {
-        console.error('Error creating student:', error);
-        alert('Failed to create new student profile. The ID might already exist, or the server may be down.');
-        speak("Error creating profile.", true);
     }
 }
 
@@ -670,11 +533,8 @@ class BaseGame {
         clearTimeout(this.timerId);
         const overlay = document.getElementById('pause-overlay');
         if (overlay) overlay.remove();
-        if (this.startTime > 0) {
-            const endTime = now();
-            const timeSpent = endTime - this.startTime;
-            this.saveTimeSpent(timeSpent);
-        }
+        // The time spent is now calculated and sent in the endSession function,
+        // so the local saveTimeSpent function is no longer needed here.
         const musicEl = document.getElementById('background-music');
         if (musicEl) {
             musicEl.pause();
@@ -703,12 +563,6 @@ class BaseGame {
         `;
         this.container.appendChild(overlay);
         document.getElementById('resume-btn').onclick = () => this.resume();
-    }
-    saveTimeSpent(timeSpent) {
-        const gameTimeSpentKey = getTimeSpentKey(this.gameNum);
-        let existingTime = parseInt(localStorage.getItem(gameTimeSpentKey) || '0');
-        let totalTime = existingTime + timeSpent;
-        localStorage.setItem(gameTimeSpentKey, totalTime.toString());
     }
 
 
@@ -2422,6 +2276,115 @@ class CandySorterGame extends BaseGame {
     stop() { super.stop(); if (this.currentCandy) this.currentCandy.remove(); this.isDragging = false; window.removeEventListener('mousemove', this.boundDragMove); window.removeEventListener('touchmove', this.boundDragMove); window.removeEventListener('mouseup', this.boundDragEnd); window.removeEventListener('touchend', this.boundDragEnd); }
 }
 
+class MemoryMelodyGame extends BaseGame {
+    constructor(level) {
+        super(14, level, "Watch the pattern of lights and sounds, then right-click the pads to repeat it!");
+        this.pads = [
+            { color: '#ff4757', tone: 261.63 }, // C4
+            { color: '#48dbfb', tone: 329.63 }, // E4
+            { color: '#feca57', tone: 392.00 }, // G4
+            { color: '#2ed573', tone: 440.00 }  // A4
+        ];
+        this.sequence = [];
+        this.playerSequence = [];
+        this.canClick = false;
+    }
+
+    start(container) {
+        super.start(container);
+        const html = `
+            ${this._createHud('🧠 Round')}
+            <div id="memory-melody-canvas" class="game-canvas" style="border-color: #7f8fa6; background: rgba(200, 200, 210, 0.2); display: flex; align-items: center; justify-content: center;">
+                <div id="memory-pads-container"></div>
+            </div>
+            <div id="game-over14" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(127, 143, 166, 0.9); padding: 40px; border-radius: 20px; color: white; display: none;">
+                <h2>🧠 Great Memory! 🧠</h2>
+                <p>You reached Round: <span id="final-score14">0</span></p>
+                <p>Your high score for this game is your final round number!</p>
+                <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Memory Melody', currentGame.score, 0, 100)">Print Certificate</button>
+                <button onclick="currentGame.start(document.getElementById('game-area'))">Play Again!</button>
+            </div>`;
+        const css = `
+            #memory-pads-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            .memory-pad { width: 150px; height: 150px; border-radius: 20px; cursor: pointer; transition: all 0.1s ease-in-out; }
+            .memory-pad.active { transform: scale(0.95); filter: brightness(1.5); box-shadow: 0 0 20px white; }
+        `;
+        this.container.innerHTML = html + `<style>${css}</style>`;
+
+        const padsContainer = document.getElementById('memory-pads-container');
+        this.pads.forEach((pad, index) => {
+            const padEl = document.createElement('div');
+            padEl.className = 'memory-pad';
+            padEl.style.backgroundColor = pad.color;
+            padEl.dataset.index = index;
+            padEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Prevent the default right-click menu
+                this.handlePadClick(index);
+            });
+            padsContainer.appendChild(padEl);
+        });
+
+        this.sequence = [];
+        this.score = 0; // Score represents the current round
+        setTimeout(() => this.nextRound(), 1000);
+    }
+
+    nextRound() {
+        this.canClick = false;
+        this.playerSequence = [];
+        this.score++;
+        updateProgressBar(`hud-score${this.gameNum}`, '🧠 Round', this.score, 20);
+
+        const nextPadIndex = Math.floor(Math.random() * this.pads.length);
+        this.sequence.push(nextPadIndex);
+
+        this.playSequence();
+    }
+
+    playSequence() {
+        let i = 0;
+        const intervalId = setInterval(() => {
+            if (i >= this.sequence.length) {
+                clearInterval(intervalId);
+                this.canClick = true;
+                speak("Your turn.", true);
+                return;
+            }
+            this.activatePad(this.sequence[i]);
+            i++;
+        }, 600 / this.settings.speed); // Delay between notes
+    }
+
+    activatePad(index) {
+        const padEl = document.querySelector(`.memory-pad[data-index='${index}']`);
+        if (!padEl) return;
+
+        padEl.classList.add('active');
+        playTone(this.pads[index].tone, 0.4, 'triangle', 0.2);
+        setTimeout(() => padEl.classList.remove('active'), 300 / this.settings.speed);
+    }
+
+    handlePadClick(index) {
+        if (!this.canClick || !this.active) return;
+
+        this.activatePad(index);
+        this.playerSequence.push(index);
+
+        const currentStep = this.playerSequence.length - 1;
+        if (this.playerSequence[currentStep] !== this.sequence[currentStep]) {
+            // Game Over
+            this.stop();
+            speak(`Oops! The correct pattern is over. You reached round ${this.score}.`, true);
+            document.getElementById('final-score14').textContent = this.score;
+            document.getElementById('game-over14').style.display = 'block';
+            endSession(this.gameNum, this.score, 1, now() - this.startTime);
+        } else if (this.playerSequence.length === this.sequence.length) {
+            // Round complete
+            setTimeout(() => this.nextRound(), 1000);
+        }
+    }
+}
+
 const gameRegistry = {
     1: MouseTrainerGame,
     2: BananaChaseGame,
@@ -2435,6 +2398,7 @@ const gameRegistry = {
     11: NumberMatchingGame,
     12: ParagraphProGame,
     13: CandySorterGame,
+    14: MemoryMelodyGame,
 };
 
 function gameFactory(gameNum, level = 'medium') {
@@ -2464,18 +2428,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mobile-prompt').style.display = 'flex';
     }
     document.getElementById('badge-btn').addEventListener('click', showBadges);
-    document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
-    document.getElementById('top-students-session-btn').addEventListener('click', startTopStudentsSession);
     document.getElementById('play-btn').addEventListener('click', findAndPlay);
     document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
-    document.getElementById('generate-id-btn').addEventListener('click', generateStudentId);
-    document.getElementById('admin-mode-btn').addEventListener('click', toggleAdminMode);
     document.getElementById('close-settings-btn').addEventListener('click', hideSettingsModal);
     document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoice);
     document.getElementById('custom-art-btn').addEventListener('click', () => { hideSettingsModal(); showArtCustomModal(); });
     document.getElementById('hide-badges-btn').addEventListener('click', hideBadges);
-    document.getElementById('close-leaderboard-btn').addEventListener('click', hideLeaderboard);
-    document.getElementById('reset-time-btn').addEventListener('click', resetAllTimeSpent);
     document.getElementById('reset-art-btn').addEventListener('click', resetCustomArt);
     document.getElementById('close-art-btn').addEventListener('click', hideArtCustomModal);
     document.getElementById('mobile-start-btn').addEventListener('click', hideMobilePrompt);
