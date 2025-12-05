@@ -176,6 +176,9 @@ app.get('/api/leaderboard', async (req, res) => {
 });
 
 // --- Start Server ---
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+// Listen on all network interfaces to allow access from other devices on the network
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}.`);
+    console.log(`Access it locally at http://localhost:${PORT}`);
+    console.log(`Access it on your network from other devices via your local IP address.`);
 });
