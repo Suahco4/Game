@@ -51,8 +51,6 @@ app.get('/api/students/:id', async (req, res) => {
             student = new Student({
                 studentId: req.params.id,
                 name: `Student ${req.params.id}`, // Default name
-                class: 'Fun Class', // Default class
-                name: `Cadet ${req.params.id}`, // Default name
                 class: 'Orion Crew', // Default class
             });
             await student.save();
@@ -60,6 +58,21 @@ app.get('/api/students/:id', async (req, res) => {
         res.json(student);
     } catch (error) {
         res.status(500).json({ message: 'Error loading student profile', error });
+    }
+});
+
+// DELETE: A student record (for admin and settings)
+// This was moved from admin routes to here to fix a route conflict.
+// It now correctly matches `/api/students/delete/:id` instead of `/api/students/:id`
+app.delete('/api/students/:id', async (req, res) => {
+    try {
+        const result = await Student.findOneAndDelete({ studentId: req.params.id });
+        if (!result) {
+            return res.status(404).json({ message: 'Student not found.' });
+        }
+        res.status(200).json({ message: 'Student deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting student', error });
     }
 });
 
@@ -159,19 +172,6 @@ app.get('/api/leaderboard', async (req, res) => {
         res.json(topStudents);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching leaderboard', error });
-    }
-});
-
-// DELETE: A student record (for admin and settings)
-app.delete('/api/admin/students/:id', async (req, res) => {
-    try {
-        const result = await Student.findOneAndDelete({ studentId: req.params.id });
-        if (!result) {
-            return res.status(404).json({ message: 'Student not found.' });
-        }
-        res.status(200).json({ message: 'Student deleted successfully.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting student', error });
     }
 });
 
