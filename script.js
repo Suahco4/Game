@@ -2411,17 +2411,32 @@ class MultipleChoiceGame extends BaseGame {
         this.questionStartTime = 0;
         this.allQuestions = [
             // Computer Questions
-            { questionText: "Which part of the computer is this?", image: "Arts/System Unit.png", options: ["Monitor", "Keyboard", "System Unit", "Mouse"], correctAnswer: "System Unit" },
-            { questionText: "What is this device used for?", image: "Arts/Keyboard.png", options: ["Pointing", "Typing", "Printing", "Listening"], correctAnswer: "Typing" },
-            { questionText: "What is this part of the computer called?", image: "Arts/Monitor.png", options: ["Printer", "Monitor", "System Unit", "Mouse"], correctAnswer: "Monitor" },
-            { questionText: "What is the name of this pointing device?", image: "Arts/Mouse.png", options: ["Keyboard", "Webcam", "Mouse", "Speakers"], correctAnswer: "Mouse" },
-            { questionText: "Which device is this?", image: "Arts/Printer.png", options: ["Monitor", "Printer", "Webcam", "Speakers"], correctAnswer: "Printer" },
+            {
+                questionText: "A device you move to point, click, and select things on the screen is...", image: null,
+                options: [
+                    { image: "Arts/Monitor.png", text: "Monitor" },
+                    { image: "Arts/Keyboard.png", text: "Keyboard" },
+                    { image: "Arts/System Unit.png", text: "System Unit" },
+                    { image: "Arts/Mouse.png", text: "Mouse" }
+                ],
+                correctAnswer: "Mouse"
+            },
+            {
+                questionText: "The part that shows pictures, videos, and words, like a TV for the computer, is...", image: null,
+                options: [
+                    { image: "Arts/Printer.png", text: "Printer" },
+                    { image: "Arts/Monitor.png", text: "Monitor" },
+                    { image: "Arts/Webcam.png", text: "Webcam" },
+                    { image: "Arts/Mouse.png", text: "Mouse" }
+                ],
+                correctAnswer: "Monitor"
+            },
             // General Knowledge Questions
-            { questionText: "What color is a ripe strawberry?", image: null, options: ["Blue", "Yellow", "Red", "Green"], correctAnswer: "Red" },
-            { questionText: "How many legs does a spider have?", image: null, options: ["Six", "Eight", "Ten", "Four"], correctAnswer: "Eight" },
-            { questionText: "What sound does a cow make?", image: null, options: ["Woof", "Moo", "Oink", "Meow"], correctAnswer: "Moo" },
-            { questionText: "Which planet is known as the Red Planet?", image: null, options: ["Earth", "Mars", "Jupiter", "Saturn"], correctAnswer: "Mars" },
-            { questionText: "What gas do plants need to make food?", image: null, options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Helium"], correctAnswer: "Carbon Dioxide" }
+            { questionText: "What color is a ripe strawberry?", image: null, options: [{ text: "Blue" }, { text: "Yellow" }, { text: "Red" }, { text: "Green" }], correctAnswer: "Red" },
+            { questionText: "How many legs does a spider have?", image: null, options: [{ text: "Six" }, { text: "Eight" }, { text: "Ten" }, { text: "Four" }], correctAnswer: "Eight" },
+            { questionText: "What sound does a cow make?", image: null, options: [{ text: "Woof" }, { text: "Moo" }, { text: "Oink" }, { text: "Meow" }], correctAnswer: "Meow" },
+            { questionText: "Which planet is known as the Red Planet?", image: null, options: [{ text: "Earth" }, { text: "Mars" }, { text: "Jupiter" }, { text: "Saturn" }], correctAnswer: "Mars" },
+            { questionText: "What gas do plants need to make food?", image: null, options: [{ text: "Oxygen" }, { text: "Nitrogen" }, { text: "Carbon Dioxide" }, { text: "Helium" }], correctAnswer: "Carbon Dioxide" }
         ];
         // Shuffle and select 10 questions for the current round
         this.questions = this.allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
@@ -2463,6 +2478,12 @@ class MultipleChoiceGame extends BaseGame {
                 border: none;
             }
             .option-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+            .option-btn img {
+                max-height: 100px;
+                max-width: 100%;
+                object-fit: contain;
+                pointer-events: none; /* Prevents image from capturing click */
+            }
             .option-btn.correct { background: #27ae60; }
             .option-btn.incorrect { background: #c0392b; }
             .option-btn:disabled { opacity: 0.7; cursor: not-allowed; }
@@ -2497,8 +2518,13 @@ class MultipleChoiceGame extends BaseGame {
         shuffledOptions.forEach(option => {
             const button = document.createElement('button');
             button.className = 'option-btn';
-            button.textContent = option;
-            button.onclick = () => this.handleAnswer(option, button);
+            if (option.image) {
+                button.innerHTML = `<img src="${option.image}" alt="${option.text}">`;
+            } else {
+                button.textContent = option.text;
+            }
+            button.dataset.answer = option.text; // Store the answer text in a data attribute
+            button.onclick = () => this.handleAnswer(option.text, button);
             optionsContainer.appendChild(button);
         });
         speak(question.questionText, true);
@@ -2525,7 +2551,7 @@ class MultipleChoiceGame extends BaseGame {
             speak(`Incorrect. The answer was ${currentQuestion.correctAnswer}.`, true);
             // Highlight the correct answer
             document.querySelectorAll('.option-btn').forEach(btn => {
-                if (btn.textContent === currentQuestion.correctAnswer) {
+                if (btn.dataset.answer === currentQuestion.correctAnswer) {
                     btn.classList.add('correct');
                 }
             });
