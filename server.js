@@ -40,6 +40,15 @@ const studentSchema = new mongoose.Schema({
 
 const Student = mongoose.model('Student', studentSchema);
 
+// --- Mongoose Schema and Model for Questions ---
+const questionSchema = new mongoose.Schema({
+    gameNum: { type: Number, required: true },
+    questionText: { type: String, required: true },
+    options: [{ type: String, required: true }],
+    correctAnswer: { type: String, required: true }
+});
+
+const Question = mongoose.model('Question', questionSchema);
 // --- API Routes ---
 
 // GET: Load a student's profile or create a new one
@@ -131,7 +140,6 @@ app.post('/api/sessions', async (req, res) => {
         // Badge logic: Award a badge if the score is over a certain threshold and a badge for this game doesn't already exist
         if (score > 20 && !student.badges.some(b => b.game === gameNum)) {
             newBadge = {
-                type: `Master of Game ${gameNum}`,
                 type: `Mission ${gameNum} Specialist`,
                 game: gameNum,
                 date: new Date().toLocaleDateString(),
@@ -172,6 +180,21 @@ app.get('/api/leaderboard', async (req, res) => {
         res.json(topStudents);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching leaderboard', error });
+    }
+});
+
+// GET: Questions for a specific game
+app.get('/api/questions/:gameNum', async (req, res) => {
+    try {
+        const { gameNum } = req.params;
+        // We'll fetch a random set of 10 questions for the game
+        const questions = await Question.aggregate([
+            { $match: { gameNum: parseInt(gameNum, 10) } },
+            { $sample: { size: 10 } }
+        ]);
+        res.json(questions);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching questions', error });
     }
 });
 

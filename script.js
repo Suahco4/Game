@@ -4,9 +4,11 @@
 // If the hostname is localhost, a local IP, or a file path, it constructs a local API URL.
 // Otherwise, it defaults to the production server.
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-const API_URL = isLocal 
-    ? `${window.location.protocol}//${window.location.hostname}:3000/api` 
-    : 'https://game-a5vt.onrender.com/api';
+let API_URL = 'https://game-a5vt.onrender.com/api'; // Default to production
+if (isLocal) {
+    // If running from file://, hostname is empty, so default to localhost.
+    API_URL = `http://localhost:3000/api`;
+}
 
 let soundEnabled = true;
 let musicEnabled = true;
@@ -262,7 +264,8 @@ const gameTitles = {
     11: 'Number Matching',
     12: 'Paragraph Pro',
     13: 'Candy Sorter',
-    14: 'Memory Melody'
+    14: 'Memory Melody',
+    15: 'Multiple Choice Challenge'
 };
 
 function showBadges() {
@@ -418,6 +421,12 @@ function loadGame(gameNum) {
         alert('Tap the screen first to enable sounds! 👆');
         return;
     }
+    // Prevent starting a game if no student is logged in
+    if (!currentStudent) {
+        speak("Please enter your student ID and press Play Game before starting.", true);
+        alert("Please enter your student ID and press 'Play Game' first! 🚀");
+        return;
+    }
     document.getElementById('launcher').style.transition = 'opacity 0.5s';
     document.getElementById('launcher').style.opacity = '0';
     setTimeout(() => {
@@ -455,6 +464,7 @@ function updateProgressBar(barId, label, currentValue, maxValue, isMisses = fals
 
 // --- Certificate Generation ---
 function generateCertificateHTML(gameTitle, studentName, studentClass, score, misses, accuracy) {
+    if (!studentName || !studentClass) return '<div>Error: Student not loaded. Cannot generate certificate.</div>';
     return `
         <div style="font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif; text-align: center; padding: 20px; border: 5px solid #4ecdc4; border-radius: 20px; width: 80%; margin: 20px auto;">
             <h2 style="color: #ff6b35; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Prime Excellence Daycare School</h2>
@@ -2391,6 +2401,159 @@ class MemoryMelodyGame extends BaseGame {
     }
 }
 
+class MultipleChoiceGame extends BaseGame {
+    constructor(level) {
+        super(15, level, "Test your knowledge! Choose the correct answer for each question.");
+        this.questions = [];
+        this.currentQuestionIndex = 0;
+        this.correctAnswers = 0;
+        this.incorrectAnswers = 0;
+        this.questionStartTime = 0;
+        this.allQuestions = [
+            { gameNum: 15, questionText: "Which part of the computer is the 'brain'?", options: ["Monitor", "Keyboard", "System Unit", "Mouse"], correctAnswer: "System Unit" },
+            { gameNum: 15, questionText: "What do you use to type letters and numbers?", options: ["Mouse", "Keyboard", "Speakers", "Webcam"], correctAnswer: "Keyboard" },
+            { gameNum: 15, questionText: "Which part shows you pictures and words?", options: ["Printer", "Monitor", "System Unit", "Mouse"], correctAnswer: "Monitor" },
+            { gameNum: 15, questionText: "What is the name of the pointing device used to click on items?", options: ["Keyboard", "Webcam", "Mouse", "Speakers"], correctAnswer: "Mouse" },
+            { gameNum: 15, questionText: "Which device is used to print your work on paper?", options: ["Monitor", "Printer", "Webcam", "Speakers"], correctAnswer: "Printer" },
+            { gameNum: 15, questionText: "What color is a banana?", options: ["Red", "Blue", "Yellow", "Green"], correctAnswer: "Yellow" },
+            { gameNum: 15, questionText: "How many wheels does a bicycle have?", options: ["One", "Two", "Three", "Four"], correctAnswer: "Two" },
+            { gameNum: 15, questionText: "What sound does a cat make?", options: ["Woof", "Moo", "Oink", "Meow"], correctAnswer: "Meow" },
+            { gameNum: 15, questionText: "Which of these is a primary color?", options: ["Green", "Orange", "Blue", "Purple"], correctAnswer: "Blue" },
+            { gameNum: 15, questionText: "What shape is a standard clock face?", options: ["Square", "Triangle", "Circle", "Rectangle"], correctAnswer: "Circle" }
+        ];
+        // Shuffle and select 10 questions for the current round
+        this.questions = this.allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+    }
+
+    start(container) {
+        super.start(container);
+        this.correctAnswers = 0;
+        this.incorrectAnswers = 0;
+        this.currentQuestionIndex = 0;
+
+        const html = `
+            ${this._createHud('✔️ Correct', '❌ Incorrect')}
+            <div id="multiple-choice-canvas" class="game-canvas" style="border-color: #a29bfe; background: rgba(223, 220, 255, 0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <h2 id="question-text" style="font-size: clamp(24px, 4vw, 38px); color: #6c5ce7; text-align: center; margin-bottom: 30px; max-width: 90%;">Loading Question...</h2>
+                <div id="options-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; width: 100%; max-width: 800px;">
+                    <!-- Options will be loaded here -->
+                </div>
+            </div>
+            <div id="game-over15" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(162, 155, 254, 0.9); padding: 40px; border-radius: 20px; color: white; display: none;">
+                <h2>🧠 Challenge Complete! 🧠</h2>
+                <p>Correct Answers: <span id="final-correct15">0</span></p>
+                <p>Incorrect Answers: <span id="final-incorrect15">0</span></p>
+                <p>Accuracy: <span id="final-accuracy15">0%</span></p>
+                <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Multiple Choice Challenge', currentGame.correctAnswers, currentGame.incorrectAnswers, (currentGame.correctAnswers + currentGame.incorrectAnswers) > 0 ? (currentGame.correctAnswers / (currentGame.correctAnswers + currentGame.incorrectAnswers)) * 100 : 0)">Print Certificate</button>
+                <button onclick="currentGame.start(document.getElementById('game-area'))">Play Again!</button>
+            </div>`;
+        const css = `
+            .option-btn {
+                background: #8e44ad;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 15px;
+                font-size: clamp(16px, 2.5vw, 22px);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                border: none;
+            }
+            .option-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+            .option-btn.correct { background: #27ae60; }
+            .option-btn.incorrect { background: #c0392b; }
+            .option-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        `;
+        this.container.innerHTML = html + `<style>${css}</style>`;
+        // Now we just display the question since they are loaded in the constructor
+        this.displayQuestion();
+        this.updateTimer();
+    }
+
+    displayQuestion() {
+        if (this.currentQuestionIndex >= this.questions.length) {
+            this.endGame();
+            return;
+        }
+        const question = this.questions[this.currentQuestionIndex];
+        document.getElementById('question-text').textContent = question.questionText;
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        const shuffledOptions = [...question.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'option-btn';
+            button.textContent = option;
+            button.onclick = () => this.handleAnswer(option, button);
+            optionsContainer.appendChild(button);
+        });
+        speak(question.questionText, true);
+        this.questionStartTime = now();
+    }
+
+    handleAnswer(selectedOption, button) {
+        if (this.paused) return;
+        const currentQuestion = this.questions[this.currentQuestionIndex];
+        const allOptionButtons = document.querySelectorAll('.option-btn');
+        allOptionButtons.forEach(btn => btn.disabled = true); // Disable all buttons after selection
+
+        if (selectedOption === currentQuestion.correctAnswer) {
+            this.correctAnswers++;
+            updateProgressBar(`hud-score${this.gameNum}`, '✔️ Correct', this.correctAnswers, this.questions.length);
+            button.classList.add('correct');
+            playTone(659, 0.2, 'sine', 0.1); // Correct answer sound
+            speak("Correct!", true);
+        } else {
+            this.incorrectAnswers++;
+            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Incorrect', this.incorrectAnswers, this.questions.length);
+            button.classList.add('incorrect');
+            playTone(200, 0.3, 'square', 0.05); // Incorrect answer sound
+            speak(`Incorrect. The answer was ${currentQuestion.correctAnswer}.`, true);
+            // Highlight the correct answer
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                if (btn.textContent === currentQuestion.correctAnswer) {
+                    btn.classList.add('correct');
+                }
+            });
+        }
+
+        setTimeout(() => {
+            this.currentQuestionIndex++;
+            this.displayQuestion();
+        }, 1500); // Wait a bit before moving to the next question
+    }
+
+    updateTimer() {
+        if (!this.active || this.paused) return;
+        this.timerId = setTimeout(() => this.updateTimer(), 1000);
+        this._updateTimerDisplay();
+        this.timeLeft--;
+        if (this.timeLeft < 0) {
+            this.endGame();
+        }
+    }
+
+    endGame() {
+        super.stop();
+        const totalAttempts = this.correctAnswers + this.incorrectAnswers;
+        const accuracy = totalAttempts > 0 ? (this.correctAnswers / totalAttempts) * 100 : 0;
+        document.getElementById('final-correct15').textContent = this.correctAnswers;
+        document.getElementById('final-incorrect15').textContent = this.incorrectAnswers;
+        document.getElementById('final-accuracy15').textContent = `${accuracy.toFixed(0)}%`;
+        document.getElementById('game-over15').style.display = 'block';
+        const timeSpent = now() - this.startTime;
+        speak(`Time's up! You answered ${this.correctAnswers} questions correctly with ${accuracy.toFixed(0)} percent accuracy.`, true);
+        endSession(this.gameNum, this.correctAnswers, this.incorrectAnswers, timeSpent);
+    }
+
+    stop() {
+        super.stop();
+        clearTimeout(this.timerId);
+    }
+}
+
 const gameRegistry = {
     1: MouseTrainerGame,
     2: BananaChaseGame,
@@ -2405,6 +2568,7 @@ const gameRegistry = {
     12: ParagraphProGame,
     13: CandySorterGame,
     14: MemoryMelodyGame,
+    15: MultipleChoiceGame,
 };
 
 function gameFactory(gameNum, level = 'medium') {

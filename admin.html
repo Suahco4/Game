@@ -95,6 +95,14 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        #new-student-id {
+            flex-grow: 1;
+        }
         .copyable-id:hover { background-color: #e0f7fa; }
     </style>
 </head>
@@ -103,8 +111,8 @@
         <h1>Game Admin Control Panel</h1>
         <div id="add-student-form">
             <h3>Add New Student</h3>
-            <div style="display: flex; gap: 10px; width: 100%;">
-                <input type="text" id="new-student-id" placeholder="Student ID" required style="flex-grow: 1;">
+            <div class="form-row">
+                <input type="text" id="new-student-id" placeholder="Student ID" required>
                 <button id="generate-admin-id-btn" class="btn btn-secondary">Generate ID</button>
             </div>
             <input type="text" id="new-student-name" placeholder="Student Name" required>
