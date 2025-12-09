@@ -2410,16 +2410,18 @@ class MultipleChoiceGame extends BaseGame {
         this.incorrectAnswers = 0;
         this.questionStartTime = 0;
         this.allQuestions = [
-            { gameNum: 15, questionText: "Which part of the computer is the 'brain'?", options: ["Monitor", "Keyboard", "System Unit", "Mouse"], correctAnswer: "System Unit" },
-            { gameNum: 15, questionText: "What do you use to type letters and numbers?", options: ["Mouse", "Keyboard", "Speakers", "Webcam"], correctAnswer: "Keyboard" },
-            { gameNum: 15, questionText: "Which part shows you pictures and words?", options: ["Printer", "Monitor", "System Unit", "Mouse"], correctAnswer: "Monitor" },
-            { gameNum: 15, questionText: "What is the name of the pointing device used to click on items?", options: ["Keyboard", "Webcam", "Mouse", "Speakers"], correctAnswer: "Mouse" },
-            { gameNum: 15, questionText: "Which device is used to print your work on paper?", options: ["Monitor", "Printer", "Webcam", "Speakers"], correctAnswer: "Printer" },
-            { gameNum: 15, questionText: "What color is a banana?", options: ["Red", "Blue", "Yellow", "Green"], correctAnswer: "Yellow" },
-            { gameNum: 15, questionText: "How many wheels does a bicycle have?", options: ["One", "Two", "Three", "Four"], correctAnswer: "Two" },
-            { gameNum: 15, questionText: "What sound does a cat make?", options: ["Woof", "Moo", "Oink", "Meow"], correctAnswer: "Meow" },
-            { gameNum: 15, questionText: "Which of these is a primary color?", options: ["Green", "Orange", "Blue", "Purple"], correctAnswer: "Blue" },
-            { gameNum: 15, questionText: "What shape is a standard clock face?", options: ["Square", "Triangle", "Circle", "Rectangle"], correctAnswer: "Circle" }
+            // Computer Questions
+            { questionText: "Which part of the computer is this?", image: "Arts/System Unit.png", options: ["Monitor", "Keyboard", "System Unit", "Mouse"], correctAnswer: "System Unit" },
+            { questionText: "What is this device used for?", image: "Arts/Keyboard.png", options: ["Pointing", "Typing", "Printing", "Listening"], correctAnswer: "Typing" },
+            { questionText: "What is this part of the computer called?", image: "Arts/Monitor.png", options: ["Printer", "Monitor", "System Unit", "Mouse"], correctAnswer: "Monitor" },
+            { questionText: "What is the name of this pointing device?", image: "Arts/Mouse.png", options: ["Keyboard", "Webcam", "Mouse", "Speakers"], correctAnswer: "Mouse" },
+            { questionText: "Which device is this?", image: "Arts/Printer.png", options: ["Monitor", "Printer", "Webcam", "Speakers"], correctAnswer: "Printer" },
+            // General Knowledge Questions
+            { questionText: "What color is a ripe strawberry?", image: null, options: ["Blue", "Yellow", "Red", "Green"], correctAnswer: "Red" },
+            { questionText: "How many legs does a spider have?", image: null, options: ["Six", "Eight", "Ten", "Four"], correctAnswer: "Eight" },
+            { questionText: "What sound does a cow make?", image: null, options: ["Woof", "Moo", "Oink", "Meow"], correctAnswer: "Moo" },
+            { questionText: "Which planet is known as the Red Planet?", image: null, options: ["Earth", "Mars", "Jupiter", "Saturn"], correctAnswer: "Mars" },
+            { questionText: "What gas do plants need to make food?", image: null, options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Helium"], correctAnswer: "Carbon Dioxide" }
         ];
         // Shuffle and select 10 questions for the current round
         this.questions = this.allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
@@ -2434,7 +2436,8 @@ class MultipleChoiceGame extends BaseGame {
         const html = `
             ${this._createHud('✔️ Correct', '❌ Incorrect')}
             <div id="multiple-choice-canvas" class="game-canvas" style="border-color: #a29bfe; background: rgba(223, 220, 255, 0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
-                <h2 id="question-text" style="font-size: clamp(24px, 4vw, 38px); color: #6c5ce7; text-align: center; margin-bottom: 30px; max-width: 90%;">Loading Question...</h2>
+                <img id="question-image" src="" alt="Question Image" style="max-height: 200px; max-width: 90%; border-radius: 15px; margin-bottom: 20px; display: none; object-fit: contain;">
+                <h2 id="question-text" style="font-size: clamp(24px, 3vw, 32px); color: #6c5ce7; text-align: center; margin-bottom: 30px; max-width: 90%;">Loading Question...</h2>
                 <div id="options-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; width: 100%; max-width: 800px;">
                     <!-- Options will be loaded here -->
                 </div>
@@ -2476,6 +2479,15 @@ class MultipleChoiceGame extends BaseGame {
             return;
         }
         const question = this.questions[this.currentQuestionIndex];
+        const imageEl = document.getElementById('question-image');
+
+        if (question.image) {
+            imageEl.src = question.image;
+            imageEl.style.display = 'block';
+        } else {
+            imageEl.style.display = 'none';
+        }
+
         document.getElementById('question-text').textContent = question.questionText;
         const optionsContainer = document.getElementById('options-container');
         optionsContainer.innerHTML = '';
