@@ -9,64 +9,69 @@
     <link rel="canonical" href="https://YOUR_DOMAIN_HERE/">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="icon" href="Images/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <img id="school-logo" src="Images/Badge.jpg" alt="Prime Excellence Daycare School Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSI0MCIgZmlsbD0iI2ZmZGI0ZCIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkNvbWljIFNhbnMgTVMiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzMzMzMzMiPlByaW1lIEV4Y2VsbGVuY2U8L3RleHQ+PC9zdmc+'">
+    <img id="school-logo" src="Images/Badge.jpg" alt="Prime Excellence Daycare School Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI0MCIgY2U9IjQwIiByPSI0MCIgZmlsbD0iI2ZmZGI0ZCIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkNvbWljIFNhbnMgTVMiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzMzMzMzMiPlByaW1lIEV4Y2VsbGVuY2U8L3RleHQ+PC9zdmc+'">
 
     <div id="launcher">
         <img id="hero-banner" src="Images/Badge.jpg" alt="Prime Excellence Daycare School - Fun Learning Adventure" onerror="this.style.display='none'; this.parentNode.style.marginTop='0';">
 
-        <h1>Prime Excellence Daycare School Computer Game 🐒</h1>
-        
-        <div id="games-section-wrapper" class="hidden">
+        <h1><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Prime Excellence Daycare School Computer Game</h1>
+
+        <div id="games-section-wrapper">
             <div id="session-info">
-                <div id="student-profile-display" class="hidden">Student: <span id="student-name-display"></span> | Class: <span id="student-class-display"></span> | ID: <span id="student-id-display"></span></div>
-                <div id="student-profile-edit">
-                    <label for="student-id-edit">Student ID:</label>
-                    <input type="tel" inputmode="numeric" pattern="[0-9]*" id="student-id-edit" class="inline-edit" placeholder="Enter your ID number" title="Student ID" autocorrect="off">
-                    <button id="play-btn" class="btn btn-primary btn-small">Play Game 🚀</button>
+                <div id="student-profile-display">
+                    <span class="profile-chip"><i class="fa-solid fa-user-astronaut" aria-hidden="true"></i> Student: <span id="student-name-display"></span></span>
+                    <span class="profile-chip"><i class="fa-solid fa-school" aria-hidden="true"></i> Class: <span id="student-class-display"></span></span>
                 </div>
-                <div id="stars-bar"><div id="stars-fill"></div></div>
-                <div id="student-stats">Sessions: <span id="session-count">0</span> | Badges: <span id="badge-count">0</span> | High Score: <span id="high-score">0</span> | Overall Score: <span id="overall-score">0</span></div>
+                <div id="student-stats">
+                    <span class="stat-chip"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> Sessions: <span id="session-count">0</span></span>
+                    <span class="stat-chip"><i class="fa-solid fa-medal" aria-hidden="true"></i> Badges: <span id="badge-count">0</span></span>
+                    <span class="stat-chip"><i class="fa-solid fa-trophy" aria-hidden="true"></i> High Score: <span id="high-score">0</span></span>
+                    <span class="stat-chip"><i class="fa-solid fa-star" aria-hidden="true"></i> Overall Score: <span id="overall-score">0</span></span>
+                </div>
+                <div id="stars-bar" title="Badge progress"><div id="stars-fill"></div></div>
             </div>
+
             <div id="session-controls">
-                <button id="badge-btn" class="btn btn-primary btn-small">View Badges 🏅</button>
-                <button id="settings-btn" class="btn btn-secondary btn-small">Settings ⚙️</button>
-                <button id="leaderboard-btn" class="btn btn-primary btn-small">Leaderboard 🏆</button>
+                <button id="badge-btn" class="btn btn-primary btn-small"><i class="fa-solid fa-medal" aria-hidden="true"></i> View Badges</button>
+                <button id="settings-btn" class="btn btn-secondary btn-small"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings</button>
+                <button id="leaderboard-btn" class="btn btn-primary btn-small"><i class="fa-solid fa-trophy" aria-hidden="true"></i> Leaderboard</button>
             </div>
 
-            <h2 class="games-category-title">Mouse & Coordination</h2>
+            <h2 class="games-category-title"><i class="fa-solid fa-computer-mouse" aria-hidden="true"></i> Mouse &amp; Coordination</h2>
             <div id="games-section">
-                <!-- Mouse & Coordination -->
-                <button class="game-card delay-01" data-game-id="1" role="button" aria-label="Play Mouse Trainer Game"><span class="game-card-content"><span class="game-card-icon">🎯</span> Mouse Trainer</span></button>
-                <button class="game-card delay-02" data-game-id="2" role="button" aria-label="Play Banana Chase Game"><span class="game-card-content"><span class="game-card-icon">🍌</span> Banana Chase</span></button>
-                <button class="game-card delay-03" data-game-id="10" role="button" aria-label="Play PC Part Picker Game"><span class="game-card-content"><span class="game-card-icon">🖱️</span> PC Part Picker</span></button>
+                <button class="game-card delay-01" data-game-id="1" role="button" aria-label="Play Mouse Trainer Game"><span class="game-card-content"><i class="fa-solid fa-bullseye game-card-icon" aria-hidden="true"></i> Mouse Trainer</span></button>
+                <button class="game-card delay-02" data-game-id="2" role="button" aria-label="Play Banana Chase Game"><span class="game-card-content"><i class="fa-solid fa-banana game-card-icon" aria-hidden="true"></i> Banana Chase</span></button>
+                <button class="game-card delay-03" data-game-id="10" role="button" aria-label="Play PC Part Picker Game"><span class="game-card-content"><i class="fa-solid fa-microchip game-card-icon" aria-hidden="true"></i> PC Part Picker</span></button>
             </div>
 
-            <!-- Archived Games Section - Hidden by default -->
             <div id="archived-games-container">
-                <h2 class="games-category-title">Drag & Drop Puzzles</h2>
+                <h2 class="games-category-title"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i> Drag &amp; Drop Puzzles</h2>
                 <div class="games-section">
-                    <button class="game-card delay-05" data-game-id="7" role="button" aria-label="Play Art Puzzle Game"><span class="game-card-content"><span class="game-card-icon">🎨</span> Art Puzzle</span></button>
-                    <button class="game-card delay-06" data-game-id="11" role="button" aria-label="Play Number Matching Game"><span class="game-card-content"><span class="game-card-icon">🔢</span> Number Matching</span></button>
+                    <button class="game-card delay-05" data-game-id="7" role="button" aria-label="Play Art Puzzle Game"><span class="game-card-content"><i class="fa-solid fa-puzzle-piece game-card-icon" aria-hidden="true"></i> Art Puzzle</span></button>
+                    <button class="game-card delay-06" data-game-id="11" role="button" aria-label="Play Number Matching Game"><span class="game-card-content"><i class="fa-solid fa-calculator game-card-icon" aria-hidden="true"></i> Number Matching</span></button>
                 </div>
 
-                <h2 class="games-category-title">Typing Practice</h2>
+                <h2 class="games-category-title"><i class="fa-solid fa-keyboard" aria-hidden="true"></i> Typing Practice</h2>
                 <div class="games-section">
-                    <button class="game-card delay-07" data-game-id="3" role="button" aria-label="Play Typewriter Game"><span class="game-card-content"><span class="game-card-icon">⌨️</span> Typewriter</span></button>
-                    <button class="game-card delay-08" data-game-id="4" role="button" aria-label="Play Word Weaver Game"><span class="game-card-content"><span class="game-card-icon">✏️</span> Word Weaver</span></button>
-                    <button class="game-card delay-09" data-game-id="8" role="button" aria-label="Play Sentence Scribe Game"><span class="game-card-content"><span class="game-card-icon">📜</span> Sentence Scribe</span></button>
+                    <button class="game-card delay-07" data-game-id="3" role="button" aria-label="Play Typewriter Game"><span class="game-card-content"><i class="fa-solid fa-keyboard game-card-icon" aria-hidden="true"></i> Typewriter</span></button>
+                    <button class="game-card delay-08" data-game-id="4" role="button" aria-label="Play Word Weaver Game"><span class="game-card-content"><i class="fa-solid fa-spell-check game-card-icon" aria-hidden="true"></i> Word Weaver</span></button>
+                    <button class="game-card delay-09" data-game-id="8" role="button" aria-label="Play Sentence Scribe Game"><span class="game-card-content"><i class="fa-solid fa-scroll game-card-icon" aria-hidden="true"></i> Sentence Scribe</span></button>
                 </div>
 
-                <h2 class="games-category-title">Creative Fun</h2>
+                <h2 class="games-category-title"><i class="fa-solid fa-palette" aria-hidden="true"></i> Creative Fun</h2>
                 <div class="games-section">
-                    <button class="game-card delay-10" data-game-id="5" role="button" aria-label="Play Rainbow Painter Game"><span class="game-card-content"><span class="game-card-icon">🌈</span> Paint</span></button>
-                    <button class="game-card delay-11" data-game-id="9" role="button" aria-label="Play Story Self Game"><span class="game-card-content"><span class="game-card-icon">✍️</span> Story Self</span></button>
-                    <button class="game-card delay-12" data-game-id="12" role="button" aria-label="Play Paragraph Pro Game"><span class="game-card-content"><span class="game-card-icon">📝</span> Paragraph Pro</span></button>
-                    <button class="game-card delay-13" data-game-id="13" role="button" aria-label="Play Candy Sorter Game"><span class="game-card-content"><span class="game-card-icon">🍬</span> Candy Sorter</span></button>
-                    <button class="game-card delay-14" data-game-id="14" role="button" aria-label="Play Memory Melody Game"><span class="game-card-content"><span class="game-card-icon">🧠</span> Memory Melody</span></button>
-                    <button class="game-card delay-16" data-game-id="15" role="button" aria-label="Play Multiple Choice Challenge Game"><span class="game-card-content"><span class="game-card-icon">❓</span> Multiple Choice Challenge</span></button>
+                    <button class="game-card delay-10" data-game-id="5" role="button" aria-label="Play Rainbow Painter Game"><span class="game-card-content"><i class="fa-solid fa-palette game-card-icon" aria-hidden="true"></i> Paint</span></button>
+                    <button class="game-card delay-11" data-game-id="9" role="button" aria-label="Play Story Self Game"><span class="game-card-content"><i class="fa-solid fa-pen-fancy game-card-icon" aria-hidden="true"></i> Story Self</span></button>
+                    <button class="game-card delay-12" data-game-id="12" role="button" aria-label="Play Paragraph Pro Game"><span class="game-card-content"><i class="fa-solid fa-file-lines game-card-icon" aria-hidden="true"></i> Paragraph Pro</span></button>
+                    <button class="game-card delay-13" data-game-id="13" role="button" aria-label="Play Candy Sorter Game"><span class="game-card-content"><i class="fa-solid fa-candy-cane game-card-icon" aria-hidden="true"></i> Candy Sorter</span></button>
+                    <button class="game-card delay-14" data-game-id="14" role="button" aria-label="Play Memory Melody Game"><span class="game-card-content"><i class="fa-solid fa-brain game-card-icon" aria-hidden="true"></i> Memory Melody</span></button>
+                    <button class="game-card delay-16" data-game-id="15" role="button" aria-label="Play Multiple Choice Challenge Game"><span class="game-card-content"><i class="fa-solid fa-circle-question game-card-icon" aria-hidden="true"></i> Multiple Choice Challenge</span></button>
                 </div>
             </div>
         </div>
@@ -74,74 +79,73 @@
 
     <div id="leaderboard-modal">
         <div id="leaderboard">
-            <h2>Top Students 🏆</h2>
+            <h2><i class="fa-solid fa-trophy" aria-hidden="true"></i> My Top Scores</h2>
             <ol id="leaderboard-list"></ol>
-            <button id="close-leaderboard-btn" class="btn btn-secondary">Close</button>
+            <button id="close-leaderboard-btn" class="btn btn-secondary"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
         </div>
     </div>
 
-
     <div id="badge-modal">
         <div id="badge-gallery">
-            <h2>Your School Badges! 🌟</h2>
+            <h2><i class="fa-solid fa-medal" aria-hidden="true"></i> Your School Badges!</h2>
             <div id="badge-list"></div>
-            <button id="hide-badges-btn" class="btn btn-secondary">Close</button>
+            <button id="hide-badges-btn" class="btn btn-secondary"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
         </div>
     </div>
 
     <div id="art-custom-modal">
         <div id="art-custom-form">
-            <h2>Customize Your Art Puzzle 🖼️</h2>
+            <h2><i class="fa-solid fa-image" aria-hidden="true"></i> Customize Your Art Puzzle</h2>
             <p>Add your own images. Use web URLs or local file paths (e.g., Arts/MyImage.png).</p>
             <div>
                 <input type="text" id="custom-art-url" placeholder="Image URL or Path">
                 <input type="text" id="custom-art-name" placeholder="Image Name">
-                <button class="btn btn-primary btn-small" onclick="addCustomArt()">Add Art</button>
+                <button class="btn btn-primary btn-small" onclick="addCustomArt()"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Art</button>
             </div>
             <div id="custom-art-list"></div>
-            <button id="reset-art-btn" class="btn btn-secondary">Reset to Default</button>
-            <button id="close-art-btn" class="btn btn-primary">Save & Close</button>
+            <button id="reset-art-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset to Default</button>
+            <button id="close-art-btn" class="btn btn-primary"><i class="fa-solid fa-check" aria-hidden="true"></i> Save &amp; Close</button>
         </div>
     </div>
 
     <div id="settings-modal">
         <div id="settings-menu">
-            <h2>Game Settings ⚙️</h2>
+            <h2><i class="fa-solid fa-gear" aria-hidden="true"></i> Game Settings</h2>
 
             <div class="settings-section">
                 <h3>Difficulty</h3>
                 <div id="level-selector">
-                    <div class="level-option"><input type="radio" id="level-easy" name="game-level" value="easy"><label for="level-easy">Easy 🐢</label></div>
-                    <div class="level-option"><input type="radio" id="level-medium" name="game-level" value="medium" checked><label for="level-medium">Medium 🐒</label></div>
-                    <div class="level-option"><input type="radio" id="level-hard" name="game-level" value="hard"><label for="level-hard">Hard 🐆</label></div>
+                    <div class="level-option"><input type="radio" id="level-easy" name="game-level" value="easy"><label for="level-easy"><i class="fa-solid fa-turtle" aria-hidden="true"></i> Easy</label></div>
+                    <div class="level-option"><input type="radio" id="level-medium" name="game-level" value="medium" checked><label for="level-medium"><i class="fa-solid fa-paw" aria-hidden="true"></i> Medium</label></div>
+                    <div class="level-option"><input type="radio" id="level-hard" name="game-level" value="hard"><label for="level-hard"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Hard</label></div>
                 </div>
             </div>
 
             <div class="settings-section">
-                <h3>Player & Data Management</h3>
-                <button id="delete-student-btn" class="btn btn-danger">Delete Current Student 🗑️</button>
+                <h3>My Progress</h3>
+                <button id="reset-progress-btn" class="btn btn-danger"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset My Progress</button>
             </div>
 
             <div class="settings-section">
                 <h3>Game Customization</h3>
-                <button id="voice-toggle-btn" class="btn btn-primary">Mute Voice 🔇</button>
-                <button id="custom-art-btn" class="btn btn-primary">Customize Art 🎨</button>
+                <button id="voice-toggle-btn" class="btn btn-primary"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i> Mute Voice</button>
+                <button id="custom-art-btn" class="btn btn-primary"><i class="fa-solid fa-palette" aria-hidden="true"></i> Customize Art</button>
             </div>
 
-            <button id="close-settings-btn" class="btn btn-primary">Close</button>
+            <button id="close-settings-btn" class="btn btn-primary"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close</button>
         </div>
     </div>
 
     <!-- Tutorial Pointer (hidden by default) -->
-    <div id="tutorial-pointer" class="tutorial-pointer">👆</div>
+    <div id="tutorial-pointer" class="tutorial-pointer"><i class="fa-solid fa-hand-pointer"></i></div>
 
     <div id="game-area"></div>
 
     <div id="mobile-prompt">
         <div>
-            <h2>👆 Tap to Play!</h2>
+            <h2><i class="fa-solid fa-hand-pointer" aria-hidden="true"></i> Tap to Play!</h2>
             <p>Touch the screen to start sounds and games. Ooh ooh ah ah!</p>
-            <button id="mobile-start-btn" class="btn btn-primary">Start Adventure! 🎮</button>
+            <button id="mobile-start-btn" class="btn btn-primary"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> Start Adventure!</button>
         </div>
     </div>
 

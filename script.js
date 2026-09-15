@@ -1,20 +1,43 @@
 // Global vars
+// No more login / Student ID: progress is saved locally in this browser.
+const PLAYER_STORAGE_KEY = 'primePlayerProfile_v1';
+const TOTAL_GAMES = 14;
 
-// Dynamically determine the API URL.
-// If the hostname is localhost, a local IP, or a file path, it constructs a local API URL.
-// Otherwise, it defaults to the production server.
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-let API_URL = 'https://game-a5vt.onrender.com/api'; // Default to production
-if (isLocal) {
-    // If running from file://, hostname is empty, so default to localhost.
-    API_URL = `http://localhost:3000/api`;
+function defaultPlayerProfile() {
+    return {
+        name: 'Star Pupil',
+        class: 'Orion Crew',
+        sessions: 0,
+        badges: [],
+        highScore: 0,
+        overallScore: 0,
+        timeSpent: {},
+        bestScores: {}
+    };
+}
+
+function loadPlayerProfile() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY));
+        return Object.assign(defaultPlayerProfile(), saved || {});
+    } catch (e) {
+        return defaultPlayerProfile();
+    }
+}
+
+function savePlayerProfile() {
+    try {
+        localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(playerProfile));
+    } catch (e) {
+        console.error('Could not save player progress locally:', e);
+    }
 }
 
 let soundEnabled = true;
 let musicEnabled = true;
 let voiceEnabled = true;
 let globalAudioContext = null;
-let currentStudent = null; // Will be fetched from the backend
+let playerProfile = loadPlayerProfile(); // Saved locally, no ID required
 let currentGame = 0;
 let customArtPieces = JSON.parse(localStorage.getItem('primeCustomArt') || '[]'); // Keep this on client
 let audioDebounce = null;
@@ -34,7 +57,7 @@ function now() {
 }
 
 function getTimeSpentKey(gameNum) {
-    return `primeTimeSpent_${encodeURIComponent(currentStudent.name)}_Game${gameNum}`;
+    return `primeTimeSpent_${encodeURIComponent(playerProfile.name)}_Game${gameNum}`;
 }
 
 // Audio helpers
@@ -89,7 +112,11 @@ function speak(text, interrupt = false) {
 function toggleVoice() {
     voiceEnabled = !voiceEnabled;
     const btn = document.getElementById('voice-toggle-btn');
-    btn.innerHTML = voiceEnabled ? 'Mute Voice 🔇' : 'Unmute Voice 🔊';
+    if (btn) {
+        btn.innerHTML = voiceEnabled
+            ? '<i class="fa-solid fa-volume-xmark" aria-hidden="true"></i> Mute Voice'
+            : '<i class="fa-solid fa-volume-high" aria-hidden="true"></i> Unmute Voice';
+    }
     if (voiceEnabled) speak("Voice enabled."); else window.speechSynthesis.cancel();
 }
 // Confetti
@@ -97,11 +124,13 @@ function toggleMusic() {
     musicEnabled = !musicEnabled;
     const musicEl = document.getElementById('background-music');
     const btn = document.getElementById('music-toggle-btn');
+    if (!musicEl) return; // No music element in this build
+    if (btn) btn.innerHTML = musicEnabled
+        ? '<i class="fa-solid fa-volume-xmark" aria-hidden="true"></i> Mute Music'
+        : '<i class="fa-solid fa-music" aria-hidden="true"></i> Unmute Music';
     if (musicEnabled) {
-        btn.innerHTML = 'Mute Music 🔇';
-        if (currentGame && currentGame.active && !currentGame.paused) musicEl.play();
+        if (currentGame && currentGame.active && !currentGame.paused) musicEl.play().catch(() => {});
     } else {
-        btn.innerHTML = 'Unmute Music 🎵';
         musicEl.pause();
     }
 }
@@ -110,7 +139,7 @@ function showUnlockNotification() {
     const notification = document.createElement('div');
     notification.id = 'unlock-notification';
     notification.innerHTML = `
-        <h2>🎉 New Games Unlocked! 🎉</h2>
+        <h2><i class="fa-solid fa-lock-open" aria-hidden="true"></i> New Games Unlocked! <i class="fa-solid fa-lock-open" aria-hidden="true"></i></h2>
         <p>You've earned enough badges to unlock more challenging games. Keep up the great work!</p>
     `;
     
@@ -128,75 +157,71 @@ function showUnlockNotification() {
     }, 5000); // Show for 5 seconds
 }
 function showConfetti() {
-    // Confetti logic remains the same
-}
-
-// Function to load a student profile (or create a default one)
-async function findAndPlay() {
-    const studentId = document.getElementById('student-id-edit').value.trim();
-    if (!studentId) {
-        alert('Please enter your Student ID.');
-        return;
-    }
-
-    // The backend will find the student or create a new one if the ID is new.
-    try {
-        const response = await fetch(`${API_URL}/students/${studentId}`);
-        currentStudent = await response.json();
-        if (!response.ok) throw new Error(currentStudent.message || 'Failed to load profile.');
-
-        initDisplay();
-        playSound('click');
-        speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
-    } catch (error) {
-        console.error('Error finding or creating student:', error);
-        alert('Could not start the game. Please check the Student ID or make sure the server is running.');
+    const colors = ['#ff6b35', '#4ecdc4', '#ffdb4d', '#ff4757', '#2ed573', '#48dbfb', '#ff9ff3'];
+    for (let i = 0; i < 60; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = (Math.random() * 0.8) + 's';
+        piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+        const size = 6 + Math.random() * 8;
+        piece.style.width = size + 'px';
+        piece.style.height = size + 'px';
+        if (Math.random() > 0.5) piece.style.borderRadius = '50%';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 5000);
     }
 }
 
-async function loadDefaultStudent() {
-    try {
-        // This function is now primarily for ensuring the UI is set up correctly on initial load.
-        // It doesn't log anyone in.
-        document.getElementById('games-section-wrapper').classList.remove('hidden');
-        speak("Welcome to the Prime Excellence Daycare School Computer Game! Please enter your student ID to begin.", true);
-    } catch (error) {
-        console.error('Error starting session:', error);
-        alert('Could not connect to the server. Please make sure the backend is running.');
+// Friendly in-page notice (replaces native alert() so we can show icons)
+function showNotice(iconClass, title, message) {
+    let notice = document.getElementById('game-notice');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'game-notice';
+        document.body.appendChild(notice);
     }
+    notice.innerHTML = `
+        <div class="game-notice-box">
+            <i class="fa-solid ${iconClass} game-notice-icon" aria-hidden="true"></i>
+            <div class="game-notice-text"><h3>${title}</h3><p>${message}</p></div>
+        </div>`;
+    notice.classList.add('show');
+    clearTimeout(notice._hideTimer);
+    notice._hideTimer = setTimeout(() => notice.classList.remove('show'), 4500);
 }
 
-function showStudentForm() {
-    // With no login form, this function now just ensures the game wrapper is visible
-    document.getElementById('games-section-wrapper').classList.remove('hidden');
+// No login screen anymore: the game starts immediately with a local player profile.
+function initPlayer() {
+    playerProfile = loadPlayerProfile();
+    const wrapper = document.getElementById('games-section-wrapper');
+    if (wrapper) wrapper.classList.remove('hidden');
+    initDisplay();
+    speak(`Welcome, ${playerProfile.name}! Pick a game and have fun!`, true);
 }
 
-async function deleteStudentRecord() {
-    if (!currentStudent || !confirm(`Are you sure you want to permanently delete all data for ${currentStudent.name}? This action cannot be undone.`)) return;
-
-    try {
-        const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete student.');
-        alert(`All records for ${currentStudent.name} have been deleted. Loading a new guest profile.`);
-        alert(`All records for ${currentStudent.name} have been deleted. Returning to the main console.`);
-        window.location.reload(); // Reload the page to go back to the login screen
-        loadDefaultStudent(); // Load a new default student after deletion
-    } catch (error) {
-        console.error('Error deleting student record:', error);
-        alert('Could not delete student record. Please try again later.');
-    }
+// Wipe all locally-saved progress (sessions, badges, scores) and start fresh.
+function resetMyProgress() {
+    if (!confirm('Reset all of your progress (sessions, badges and scores)? This cannot be undone.')) return;
+    playerProfile = defaultPlayerProfile();
+    savePlayerProfile();
+    hideSettingsModal();
+    initDisplay();
+    showNotice('fa-rotate-left', 'Progress Reset', 'A fresh start! Play to earn new badges and scores.');
+    speak('Progress reset. Fresh start. Pick a game and have fun!', true);
 }
 
 function getSafeKey(key) {
-    return `prime${key}_${encodeURIComponent(currentStudent.name)}`;
+    return `prime${key}_${encodeURIComponent(playerProfile.name)}`;
 }
 
 function calculateOverallScore() {
-    if (!currentStudent || currentStudent.badges.length === 0) {
+    if (!playerProfile || playerProfile.badges.length === 0) {
         return 0;
     } else {
-        const sumOfScores = currentStudent.badges.reduce((acc, badge) => acc + badge.score, 0);
-        return Math.round(sumOfScores / currentStudent.badges.length);
+        const sumOfScores = playerProfile.badges.reduce((acc, badge) => acc + badge.score, 0);
+        return Math.round(sumOfScores / playerProfile.badges.length);
     }
 }
 
@@ -207,7 +232,7 @@ function checkArchivedGames() {
     const wasHidden = archivedContainer.style.display === 'none';
 
     // Unlock archived games after earning 3 badges (30 stars)
-    // if (currentStudent.badges.length >= 3) {
+    // if (playerProfile.badges.length >= 3) {
     // Always show for development
         archivedContainer.style.display = 'block';
         archivedContainer.classList.add('unlocked');
@@ -219,25 +244,25 @@ function checkArchivedGames() {
 }
 
 function initDisplay() {
-    if (!currentStudent) return;
+    if (!playerProfile) return;
     const overallScore = calculateOverallScore();
 
-    // Hide the login form and show the student's info
-    document.getElementById('student-profile-edit').classList.add('hidden');
-    document.getElementById('student-profile-display').classList.remove('hidden');
-
-    // Update profile display with Student ID
-    document.getElementById('student-name-display').textContent = currentStudent.name;
-    document.getElementById('student-class-display').textContent = currentStudent.class;
-    document.getElementById('student-id-display').textContent = currentStudent.studentId;
+    // Update profile display (no ID is shown - no login is needed)
+    const nameEl = document.getElementById('student-name-display');
+    const classEl = document.getElementById('student-class-display');
+    if (nameEl) nameEl.textContent = playerProfile.name;
+    if (classEl) classEl.textContent = playerProfile.class;
 
     // Update stats display
-    document.getElementById('session-count').textContent = currentStudent.sessions;
-    document.getElementById('badge-count').textContent = currentStudent.badges.length;
-    document.getElementById('high-score').textContent = currentStudent.highScore;
-    document.getElementById('overall-score').textContent = overallScore;
-    // The welcome message is now handled by loadDefaultStudent
-    speak(`Welcome, ${currentStudent.name}! Please choose a game to play.`, true);
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setText('session-count', playerProfile.sessions);
+    setText('badge-count', playerProfile.badges.length);
+    setText('high-score', playerProfile.highScore);
+    setText('overall-score', overallScore);
+
+    // Badge progress bar (fills up as badges are earned)
+    const fill = document.getElementById('stars-fill');
+    if (fill) fill.style.width = Math.min(100, Math.round((playerProfile.badges.length / TOTAL_GAMES) * 100)) + '%';
 }
 function hideMobilePrompt() {
     document.getElementById('mobile-prompt').style.display = 'none';
@@ -247,7 +272,7 @@ function hideMobilePrompt() {
 // Audio init
 function initAllAudio() {
     clearTimeout(audioDebounce);
-    speak("Welcome to the Prime Excellence Daycare School Computer Game! Who is playing today?", true);
+    speak("Welcome to the Prime Excellence Daycare School Computer Game! Pick a game and have fun!", true);
     audioDebounce = setTimeout(initGlobalAudio, 100);
 }
 
@@ -271,20 +296,15 @@ const gameTitles = {
 function showBadges() {
     playSound('hover');
     const list = document.getElementById('badge-list');
-    if (!currentStudent) return;
-    const badgeHTML = currentStudent.badges.length > 0 ? currentStudent.badges.map(b => `<div class="badge-item">${b.type} (Game ${b.game}, ${b.date}, Score: ${b.score})</div>`).join('') : "<p>No badges earned yet. Keep playing!</p>";
+    if (!playerProfile) return;
+    const badgeHTML = playerProfile.badges.length > 0 ? playerProfile.badges.map(b => `<div class="badge-item">${b.type} (Game ${b.game}, ${b.date}, Score: ${b.score})</div>`).join('') : "<p>No badges earned yet. Keep playing!</p>";
     const timeSpentHTML = Object.keys(gameRegistry).map(gameNum => {
-        const timeMs = currentStudent.timeSpent[`game${gameNum}`] || 0;
+        const timeMs = playerProfile.timeSpent[`game${gameNum}`] || 0;
         const timeFormatted = formatTime(Math.floor(timeMs / 1000));
         return `<div class="time-spent-item"><strong>${gameTitles[gameNum] || `Game ${gameNum}`}:</strong> ${timeFormatted}</div>`;
     }).join('');
-    list.innerHTML = `<div>${badgeHTML}</div><hr><div id="time-spent-section"><h3>Total Play Time ⏱️</h3>${timeSpentHTML}</div>`;
+    list.innerHTML = `<div>${badgeHTML}</div><hr><div id="time-spent-section"><h3><i class="fa-solid fa-stopwatch" aria-hidden="true"></i> Total Play Time</h3>${timeSpentHTML}</div>`;
     document.getElementById('badge-modal').style.display = 'flex';
-}
-
-function resetAllTimeSpent() {
-    // This would require a new backend endpoint. For now, we can disable or remove this button.
-    alert("This feature is managed by the server now.");
 }
 
 function hideBadges() {
@@ -300,44 +320,23 @@ function hideSettingsModal() {
     document.getElementById('settings-modal').style.display = 'none';
 }
 
-function showEditProfileForm() {
-    document.getElementById('student-profile-display').classList.add('hidden');
-    document.getElementById('student-profile-edit').classList.remove('hidden');
-
-    document.getElementById('student-name-edit').value = currentStudent.name;
-    document.getElementById('student-class-edit').value = currentStudent.class;
+// --- Leaderboard (local best scores, no login needed) ---
+function showLeaderboard() {
+    playSound('hover');
+    const list = document.getElementById('leaderboard-list');
+    if (!list) return;
+    const entries = Object.entries(playerProfile.bestScores || {})
+        .map(([game, score]) => ({ game: parseInt(game, 10), score }))
+        .sort((a, b) => b.score - a.score);
+    list.innerHTML = entries.length > 0
+        ? entries.map(e => `<li class="leaderboard-item"><i class="fa-solid fa-trophy" aria-hidden="true"></i> ${gameTitles[e.game] || 'Game ' + e.game} — Best score: ${e.score}</li>`).join('')
+        : '<li class="leaderboard-item"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> No scores yet. Play a game to set your first record!</li>';
+    document.getElementById('leaderboard-modal').style.display = 'flex';
 }
 
-function hideEditProfileForm() {
-    document.getElementById('student-profile-display').classList.remove('hidden');
-    document.getElementById('student-profile-edit').classList.add('hidden');
-}
-
-async function saveProfileChanges() {
-    const newName = document.getElementById('student-name-edit').value.trim();
-    const newClass = document.getElementById('student-class-edit').value.trim();
-
-    if (!newName || !newClass) {
-        alert('Name and Class cannot be empty.');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/students/${currentStudent.studentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName, class: newClass })
-        });
-        if (!response.ok) throw new Error('Failed to update profile.');
-
-        currentStudent = await response.json(); // Update local data with server response
-        initDisplay(); // Refresh the entire display
-        hideEditProfileForm();
-        speak("Profile updated successfully.", true);
-    } catch (error) {
-        console.error('Error saving profile:', error);
-        alert('Could not save profile changes to the server.');
-    }
+function hideLeaderboard() {
+    const modal = document.getElementById('leaderboard-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 // Custom Art Functions
@@ -355,7 +354,7 @@ function updateCustomArtList() {
     const listEl = document.getElementById('custom-art-list');
     listEl.innerHTML = customArtPieces.map((p, i) => `
         <div class="custom-art-item">
-            <span>🎨 ${p.name} (${p.src})</span>
+            <span><i class="fa-solid fa-palette"></i> ${p.name} (${p.src})</span>
             <button class="btn btn-secondary btn-small" onclick="removeCustomArt(${i})">Remove</button>
         </div>
     `).join('');
@@ -383,27 +382,44 @@ function resetCustomArt() {
     if (confirm('Are you sure you want to remove all custom art and restore the default images?')) { customArtPieces = []; localStorage.removeItem('primeCustomArt'); updateCustomArtList(); }
 }
 
-async function endSession(gameNum, score, misses, timeSpent) {
-    try {
-        const response = await fetch(`${API_URL}/sessions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId: currentStudent.studentId, gameNum, score, misses, timeSpent })
-        });
-        if (!response.ok) throw new Error('Failed to save session.');
+function endSession(gameNum, score, misses, timeSpent) {
+    // Progress is now saved locally in the browser (no login, no server).
+    playerProfile.sessions += 1;
+    if (score > playerProfile.highScore) playerProfile.highScore = score;
 
-        const { student, newBadge } = await response.json();
-        currentStudent = student; // Update local student data with the latest from the server
+    const timeSpentKey = `game${gameNum}`;
+    playerProfile.timeSpent[timeSpentKey] = (playerProfile.timeSpent[timeSpentKey] || 0) + timeSpent;
 
-        if (newBadge) {
-            alert(`🎉 New Badge Earned: ${newBadge.type} in Game ${gameNum}! Score: ${newBadge.score}`);
-            showConfetti();
-            playSound('win');
-        }
-        initDisplay(); // Refresh the display with new stats
-    } catch (error) {
-        console.error('Error ending session:', error);
+    if (!playerProfile.bestScores[gameNum] || score > playerProfile.bestScores[gameNum]) {
+        playerProfile.bestScores[gameNum] = score;
     }
+
+    let newBadge = null;
+    // Badge logic: Award a badge if the score is over a certain threshold and a badge for this game doesn't already exist
+    if (score > 20 && !playerProfile.badges.some(b => b.game === gameNum)) {
+        newBadge = {
+            type: `Mission ${gameNum} Specialist`,
+            game: gameNum,
+            date: new Date().toLocaleDateString(),
+            score: score
+        };
+        playerProfile.badges.push(newBadge);
+    }
+
+    if (playerProfile.badges.length > 0) {
+        const sumOfScores = playerProfile.badges.reduce((acc, badge) => acc + badge.score, 0);
+        playerProfile.overallScore = Math.round(sumOfScores / playerProfile.badges.length);
+    }
+
+    savePlayerProfile();
+
+    if (newBadge) {
+        showNotice('fa-medal', 'New Badge Earned!', `${newBadge.type} in ${gameTitles[gameNum] || 'Game ' + gameNum} — Score: ${newBadge.score}`);
+        showConfetti();
+        playSound('win');
+        speak(`Congratulations! You earned a new badge: ${newBadge.type}!`, true);
+    }
+    initDisplay(); // Refresh the display with new stats
 }
 
 // Global keydown handler for Games 3 & 4
@@ -418,13 +434,7 @@ function globalKeyHandler(e) {
 function loadGame(gameNum) {
     playSound('click');
     if (window.matchMedia('(pointer: coarse)').matches && !globalAudioContext) {
-        alert('Tap the screen first to enable sounds! 👆');
-        return;
-    }
-    // Prevent starting a game if no student is logged in
-    if (!currentStudent) {
-        speak("Please enter your student ID and press Play Game before starting.", true);
-        alert("Please enter your student ID and press 'Play Game' first! 🚀");
+        showNotice('fa-hand-pointer', 'Tap to Play!', 'Touch the screen first to enable sounds.');
         return;
     }
     document.getElementById('launcher').style.transition = 'opacity 0.5s';
@@ -464,25 +474,35 @@ function updateProgressBar(barId, label, currentValue, maxValue, isMisses = fals
 
 // --- Certificate Generation ---
 function generateCertificateHTML(gameTitle, studentName, studentClass, score, misses, accuracy) {
-    if (!studentName || !studentClass) return '<div>Error: Student not loaded. Cannot generate certificate.</div>';
-    return `
-        <div style="font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif; text-align: center; padding: 20px; border: 5px solid #4ecdc4; border-radius: 20px; width: 80%; margin: 20px auto;">
-            <h2 style="color: #ff6b35; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Prime Excellence Daycare School</h2>
-            <p style="font-size: 18px;">Certificate of Completion</p>
-            <div style="margin-top: 20px;">
-                <p style="font-size: 24px;">This certificate is awarded to</p>
-                <p style="font-size: 32px; color: #4ecdc4;">${studentName}</p>
-                <p style="font-size: 20px;">From class ${studentClass}</p>
-            </div>
-            <div style="margin-top: 20px;">
-                <p style="font-size: 20px;">For successfully completing the game:</p>
-                <p style="font-size: 24px; color: #ff6b35;">${gameTitle}</p>
-            </div>
-            <div style="margin-top: 20px; border-top: 2px solid #ddd; padding-top: 10px;">
-                <p style="font-size: 18px;">Performance Report:</p>
-                <p>Score: ${score} | Misses: ${misses} | Accuracy: ${accuracy}%</p>
-            </div>
-        </div>`;
+    if (!studentName || !studentClass) return '<div>Error: Player not loaded. Cannot generate certificate.</div>';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Certificate — ${gameTitle}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body style="margin: 0; background: #ffffff;">
+    <div style="font-family: 'Comic Sans MS', 'Segoe UI', cursive, sans-serif; text-align: center; padding: 20px; border: 5px solid #4ecdc4; border-radius: 20px; width: 80%; margin: 20px auto; background: #fffdf5;">
+        <img src="Images/Badge.jpg" alt="School Logo" style="width: 100px; height: 100px; object-fit: cover; border-radius: 14px; box-shadow: 0 3px 10px rgba(0,0,0,0.2);">
+        <h2 style="color: #ff6b35; text-shadow: 2px 2px 4px rgba(0,0,0,0.15);"><i class="fa-solid fa-graduation-cap"></i> Prime Excellence Daycare School</h2>
+        <p style="font-size: 18px; color: #555;"><i class="fa-solid fa-scroll" style="color: #4ecdc4;"></i> Certificate of Completion</p>
+        <div style="margin-top: 20px;">
+            <p style="font-size: 24px;">This certificate is awarded to</p>
+            <p style="font-size: 32px; color: #4ecdc4;">${studentName}</p>
+            <p style="font-size: 20px;"><i class="fa-solid fa-school" style="color: #ff6b35;"></i> From class ${studentClass}</p>
+        </div>
+        <div style="margin-top: 20px;">
+            <p style="font-size: 20px;">For successfully completing the game:</p>
+            <p style="font-size: 24px; color: #ff6b35;"><i class="fa-solid fa-trophy"></i> ${gameTitle}</p>
+        </div>
+        <div style="margin-top: 20px; border-top: 2px solid #ddd; padding-top: 10px;">
+            <p style="font-size: 18px;">Performance Report:</p>
+            <p><i class="fa-solid fa-star" style="color: #ffdb4d;"></i> Score: ${score} &nbsp;|&nbsp; <i class="fa-solid fa-xmark" style="color: #ff4757;"></i> Misses: ${misses} &nbsp;|&nbsp; <i class="fa-solid fa-bullseye" style="color: #4ecdc4;"></i> Accuracy: ${accuracy}%</p>
+        </div>
+    </div>
+</body>
+</html>`;
 }
 
 
@@ -558,7 +578,7 @@ class BaseGame {
         }
     }
     printCertificate(gameTitle, score, misses, accuracy) {
-        const certificateHTML = generateCertificateHTML(gameTitle, currentStudent.name, currentStudent.class, score, misses, accuracy);
+        const certificateHTML = generateCertificateHTML(gameTitle, playerProfile.name, playerProfile.class, score, misses, accuracy);
         const printWindow = window.open('', '_blank');
         printWindow.document.write(certificateHTML); printWindow.document.close(); printWindow.print();
     }
@@ -574,8 +594,8 @@ class BaseGame {
         const overlay = document.createElement('div');
         overlay.id = 'pause-overlay';
         overlay.innerHTML = `
-            <h2>Paused ⏸️</h2>
-            <button class="btn btn-primary" id="resume-btn">Resume</button>
+            <h2><i class="fa-solid fa-pause" aria-hidden="true"></i> Paused</h2>
+            <button class="btn btn-primary" id="resume-btn"><i class="fa-solid fa-play" aria-hidden="true"></i> Resume</button>
         `;
         this.container.appendChild(overlay);
         document.getElementById('resume-btn').onclick = () => this.resume();
@@ -606,8 +626,8 @@ class BaseGame {
         return `
             <div id="game-hud" data-game-num="${this.gameNum}">
                 <div class="hud-left">
-                    <button class="back-btn" onclick="backToLauncher()" aria-label="Go back home">Swing Home! 🏠</button>
-                    <button class="btn btn-secondary btn-small" onclick="currentGame.togglePause()">Pause ⏸️</button>
+                    <button class="back-btn" onclick="backToLauncher()" aria-label="Go back home"><i class="fa-solid fa-house" aria-hidden="true"></i> Swing Home!</button>
+                    <button class="btn btn-secondary btn-small" onclick="currentGame.togglePause()"><i class="fa-solid fa-pause" aria-hidden="true"></i> Pause</button>
                 </div>
                 <div class="hud-center">
                     <div class="hud-score" id="hud-score${this.gameNum}">${scoreLabel}: 0 <div class="progress-bar"><div class="progress-fill" id="score-fill${this.gameNum}"></div></div></div>
@@ -716,10 +736,10 @@ class BananaChaseGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🍌 Grabbed')}
+            ${this._createHud('<i class="fa-solid fa-banana"></i> Grabbed')}
             <div id="banana-chase-canvas" class="game-canvas" style="border-color: #feca57; background: rgba(255, 235, 153, 0.2);"></div>
             <div id="game-over2" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; box-shadow: 0 0 20px rgba(0,0,0,0.3); display: none;">
-                <h2>🍌 Performance Report 🍌</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Final Bananas: <span id="final-score2">0</span></p>
                 <p>Accuracy: <span id="final-accuracy2">0%</span></p>
                 <button onclick="currentGame.start(document.getElementById('game-area'))">Swing Again!</button>
@@ -750,7 +770,7 @@ class BananaChaseGame extends BaseGame {
             if (this.paused) return;
             if (e.type === 'touchstart') e.preventDefault();
             target.classList.add('grabbed'); this.score++;
-            updateProgressBar('hud-score2', '🍌 Grabbed', this.score, 30);
+            updateProgressBar('hud-score2', '<i class="fa-solid fa-banana"></i> Grabbed', this.score, 30);
             setTimeout(() => { target.remove(); this.createTarget(); }, 200);
         };
         target.onclick = target.ontouchstart = handleClick;
@@ -793,12 +813,12 @@ class TypewriterGame extends BaseGame {
         const letterEl = document.getElementById('current-letter');
         if (k === this.currentLetter) {
             clearTimeout(this.letterTimeout); this.score++;
-            updateProgressBar('hud-score3', '🍌 Typed', this.score, 50);
+            updateProgressBar('hud-score3', '<i class="fa-solid fa-banana"></i> Typed', this.score, 50);
             letterEl.classList.add('correct'); playTone(440, 0.3, 'sine', 0.1); playTone(880, 0.3, 'sine', 0.1);
             setTimeout(() => { letterEl.classList.remove('correct'); this.updateLetter(); }, 300);
         } else if (/^[A-Z]$/.test(k)) {
             clearTimeout(this.letterTimeout); this.misses++;
-            updateProgressBar('hud-misses3', '❌ Missed', this.misses, 5, true);
+            updateProgressBar('hud-misses3', '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 5, true);
             letterEl.classList.add('wrong'); playTone(200, 0.2, 'square', 0.05);
             speak("Oops, try again!", true);
             setTimeout(() => { letterEl.classList.remove('wrong'); this.startLetterTimer(); }, 500);
@@ -808,12 +828,12 @@ class TypewriterGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🍌 Typed', '❌ Missed')}
+            ${this._createHud('<i class="fa-solid fa-banana"></i> Typed', '<i class="fa-solid fa-xmark"></i> Missed')}
             <div id="typewriter-canvas" class="game-canvas" style="border-color: #ffc107; background: rgba(255, 245, 200, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div id="current-letter" style="font-size: 200px; font-weight: bold; color: #ff6b35; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); transition: all 0.3s ease; user-select: none;">A</div>
             </div>
             <div id="game-over3" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🍌 Performance Report 🍌</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Final Score: <span id="final-score3">0</span></p>
                 <p>Misses: <span id="final-misses3">0</span></p>
                 <p>Accuracy: <span id="final-accuracy3">0%</span></p>
@@ -839,7 +859,7 @@ class TypewriterGame extends BaseGame {
         this.letterTimeout = setTimeout(() => {
             if (!this.active || this.paused) return;
             this.misses++;
-            updateProgressBar('hud-misses3', '❌ Missed', this.misses, 5, true);
+            updateProgressBar('hud-misses3', '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 5, true);
             const letterEl = document.getElementById('current-letter');
             letterEl.classList.add('wrong'); playTone(200, 0.2, 'square', 0.05);
             setTimeout(() => { letterEl.classList.remove('wrong'); this.updateLetter(); }, 500);
@@ -892,7 +912,7 @@ class WordWeaverGame extends BaseGame {
         if (/^[A-Z]$/.test(k)) {
             if (this.typedSoFar + k === this.currentWord) {
                 clearTimeout(this.wordTimeout); this.score++;
-                updateProgressBar('hud-score4', '🍌 Words', this.score, 25);
+                updateProgressBar('hud-score4', '<i class="fa-solid fa-banana"></i> Words', this.score, 25);
                 wordEl.classList.add('correct'); playTone(440, 0.4, 'sine', 0.1); playTone(880, 0.4, 'sine', 0.1);
                 setTimeout(() => { wordEl.classList.remove('correct'); this.updateWord(); }, 400);
             } else if (this.currentWord.startsWith(this.typedSoFar + k)) {
@@ -900,7 +920,7 @@ class WordWeaverGame extends BaseGame {
                 document.getElementById('typed-so-far').textContent = this.typedSoFar;
             } else {
                 clearTimeout(this.wordTimeout); this.misses++;
-                updateProgressBar('hud-misses4', '❌ Missed', this.misses, 5, true);
+                updateProgressBar('hud-misses4', '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 5, true);
                 wordEl.classList.add('wrong'); playTone(200, 0.3, 'square', 0.05);
                 this.typedSoFar = ''; document.getElementById('typed-so-far').textContent = '';
                 setTimeout(() => { wordEl.classList.remove('wrong'); this.startWordTimer(); }, 500);
@@ -911,7 +931,7 @@ class WordWeaverGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🍌 Words', '❌ Missed')}
+            ${this._createHud('<i class="fa-solid fa-banana"></i> Words', '<i class="fa-solid fa-xmark"></i> Missed')}
             <div id="word-weaver-canvas" class="game-canvas" style="border-color: #4ecdc4; background: rgba(200, 240, 235, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div style="position: relative; text-align: center;">
                     <div id="typed-so-far" style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); font-size: 40px; color: #4ecdc4; z-index: 10; width: 100%;"></div>
@@ -919,7 +939,7 @@ class WordWeaverGame extends BaseGame {
                 </div>
             </div>
             <div id="game-over4" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🍌 Performance Report 🍌</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Final Words: <span id="final-score4">0</span></p>
                 <p>Misses: <span id="final-misses4">0</span></p>
                 <p>Accuracy: <span id="final-accuracy4">0%</span></p>
@@ -946,7 +966,7 @@ class WordWeaverGame extends BaseGame {
         clearTimeout(this.wordTimeout);
         this.wordTimeout = setTimeout(() => {
             if (!this.active || this.paused) return; this.misses++;
-            updateProgressBar('hud-misses4', '❌ Missed', this.misses, 5, true);
+            updateProgressBar('hud-misses4', '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 5, true);
             const wordEl = document.getElementById('current-word');
             wordEl.classList.add('wrong'); playTone(200, 0.3, 'square', 0.05);
             this.typedSoFar = ''; document.getElementById('typed-so-far').textContent = '';
@@ -1003,13 +1023,13 @@ class RainbowPainterGame extends BaseGame {
         this.currentPictureIndex = 0;
         this.selectedColor = null;
         const html = `
-                    ${this._createHud('🎨 Shapes', '❌ Misses')}
+                    ${this._createHud('<i class="fa-solid fa-palette"></i> Shapes', '<i class="fa-solid fa-xmark"></i> Misses')}
                     <div id="paint-game-wrapper" class="game-canvas" style="border-color: #ff9ff3; background: transparent; border-style: none;">
                         <div id="color-palette-5"></div>
                         <canvas id="paintCanvas" style="background: #fff; cursor: not-allowed; touch-action: none; border: 3px dashed #ff9ff3; border-radius: 15px;"></canvas>
                     </div>
                     <div id="game-over5" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 192, 203, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                        <h2>🎨 Performance Report 🎨</h2>
+                        <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                         <p>Shapes Colored: <span id="final-score5">0</span></p>
                         <p>Total Shapes: <span id="final-total5">0</span></p>
                         <p>Completion: <span id="final-accuracy5">0%</span></p>
@@ -1194,7 +1214,7 @@ class RainbowPainterGame extends BaseGame {
                             shape.filled = true;
                             this.score++;
                             const totalShapes = this.pictures.reduce((acc, p) => acc + p.shapes.length, 0);
-                            updateProgressBar('hud-score5', '🎨 Shapes', this.score, totalShapes);
+                            updateProgressBar('hud-score5', '<i class="fa-solid fa-palette"></i> Shapes', this.score, totalShapes);
                             playTone(659, 0.2, 'sine', 0.1);
                             this.drawAllShapes();
                             // Check if all shapes are filled
@@ -1242,7 +1262,12 @@ class FruitDropGame extends BaseGame {
         this.isDragging = false;
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
-        this.fruits = ['🍎', '🍌', '🍊', '🍇'];
+        this.fruits = [
+            { img: 'Images/fruit-apple.png', alt: 'Apple' },
+            { img: 'Images/fruit-banana.png', alt: 'Banana' },
+            { img: 'Images/fruit-orange.png', alt: 'Orange' },
+            { img: 'Images/fruit-grape.png', alt: 'Grapes' }
+        ];
         this.fruitTypes = ['apple', 'banana', 'orange', 'grape'];
         this.boundDragMove = this.handleDragMove.bind(this);
         this.boundDragEnd = this.handleDragEnd.bind(this);
@@ -1251,27 +1276,31 @@ class FruitDropGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🍎 Dropped', '❌ Wrong')}
+            ${this._createHud('<i class="fa-solid fa-apple-whole"></i> Dropped', '<i class="fa-solid fa-xmark"></i> Wrong')}
             <div id="fruit-drop-canvas" class="game-canvas" style="border-color: #ff6b35; background: rgba(255, 220, 210, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 20px;">
                 <div id="fruit-spawn-area" style="width: 50%; height: 100%; position: relative;"></div>
                 <div id="monkeys6" style="display: flex; flex-direction: column; gap: 20px; z-index: 5;"></div>
             </div>
             <div id="game-over6" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🍎 Performance Report 🍎</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Correct Drops: <span id="final-score6">0</span></p>
                 <p>Wrong Drops: <span id="final-misses6">0</span></p>
                 <p>Accuracy: <span id="final-accuracy6">0%</span></p>
                 <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Fruit Drop Adventure', currentGame.score, currentGame.misses, totalAttempts > 0 ? (currentGame.score / totalAttempts) * 100 : 0)">Print Certificate</button>
                 <button onclick="currentGame.start(document.getElementById('game-area'))">Feed Again!</button>
             </div>`;
-        const css = `.fruit { position: absolute; font-size: 40px; cursor: grab; transition: transform 0.2s; z-index: 6; user-select: none; } .fruit.dragging { transform: rotate(10deg) scale(1.2); opacity: 0.8; cursor: grabbing; } .monkey-slot { width: 80px; height: 80px; border: 3px dashed #ff6b35; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 10px 0; transition: all 0.3s; background: white; } .monkey-slot.drop-success { border-color: #4ecdc4; background: rgba(78, 205, 196, 0.2); transform: scale(1.1); } .monkey-slot.drop-fail { border-color: #ff4757; background: rgba(255, 71, 87, 0.2); animation: shake 0.5s ease; }`;
+        const css = `.fruit { position: absolute; width: 60px; height: 60px; cursor: grab; transition: transform 0.2s; z-index: 6; user-select: none; } .fruit img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; box-shadow: 0 3px 8px rgba(0,0,0,0.25); pointer-events: none; } .fruit.dragging { transform: rotate(10deg) scale(1.2); opacity: 0.8; cursor: grabbing; } .monkey-slot { width: 80px; height: 80px; border: 3px dashed #ff6b35; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 10px 0; transition: all 0.3s; background: white; } .monkey-slot img { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; } .monkey-slot.drop-success { border-color: #4ecdc4; background: rgba(78, 205, 196, 0.2); transform: scale(1.1); } .monkey-slot.drop-fail { border-color: #ff4757; background: rgba(255, 71, 87, 0.2); animation: shake 0.5s ease; }`;
         this.container.innerHTML = html + `<style>${css}</style>`;
         
         const monkeysEl = document.getElementById('monkeys6');
         this.fruitTypes.forEach(type => {
             const slot = document.createElement('div');
             slot.className = 'monkey-slot';
-            slot.textContent = '🐵';
+            const monkeyImg = document.createElement('img');
+            monkeyImg.src = 'Images/monkey.png';
+            monkeyImg.alt = 'Monkey';
+            monkeyImg.onerror = function () { this.style.display = 'none'; };
+            slot.appendChild(monkeyImg);
             slot.dataset.fruit = type;
             monkeysEl.appendChild(slot);
         });
@@ -1287,7 +1316,11 @@ class FruitDropGame extends BaseGame {
         const idx = Math.floor(Math.random() * this.fruits.length);
         const fruit = document.createElement('div');
         fruit.className = 'fruit';
-        fruit.textContent = this.fruits[idx];
+        const fruitImg = document.createElement('img');
+        fruitImg.src = this.fruits[idx].img;
+        fruitImg.alt = this.fruits[idx].alt;
+        fruitImg.onerror = function () { this.style.display = 'none'; };
+        fruit.appendChild(fruitImg);
         fruit.dataset.fruit = this.fruitTypes[idx];
         fruit.style.left = `${Math.random() * (spawnArea.offsetWidth - 60)}px`;
         fruit.style.top = `${Math.random() * (spawnArea.offsetHeight - 60)}px`;
@@ -1342,14 +1375,14 @@ class FruitDropGame extends BaseGame {
                 droppedOnSlot = true;
                 if (slot.dataset.fruit === droppedFruitType) {
                     this.score++;
-                    updateProgressBar(`hud-score${this.gameNum}`, '🍎 Dropped', this.score, 25);
+                    updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-apple-whole"></i> Dropped', this.score, 25);
                     slot.classList.add('drop-success');
                     playTone(659, 0.2, 'sine', 0.1);
                     setTimeout(() => slot.classList.remove('drop-success'), 500);
                     this.currentFruit.remove();
                 } else {
                     this.misses++;
-                    updateProgressBar(`hud-misses${this.gameNum}`, '❌ Wrong', this.misses, 5, true);
+                    updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Wrong', this.misses, 5, true);
                     slot.classList.add('drop-fail');
                     playTone(200, 0.3, 'square', 0.05);
                     speak("Oops, that's the wrong monkey!", true);
@@ -1415,13 +1448,13 @@ class ArtPuzzleGame extends BaseGame {
         super.start(container);
         this.piecesPlacedThisRound = 0;
         const html = `
-            ${this._createHud('🎨 Pieces', '❌ Missed')}
+            ${this._createHud('<i class="fa-solid fa-puzzle-piece"></i> Pieces', '<i class="fa-solid fa-xmark"></i> Missed')}
             <div id="art-puzzle-canvas" class="game-canvas" style="border-color: #a8e6cf; background: rgba(220, 255, 240, 0.2); display: flex; align-items: center; gap: 20px; padding: 20px;">
                 <div id="art-palette"></div>
                 <div id="art-canvas" style="position: relative; width: 100%; height: 100%;"></div>
             </div>
             <div id="game-over7" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(135, 206, 235, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🎨 Performance Report 🎨</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Pieces Placed: <span id="final-score7">0</span></p>
                 <p>Misses: <span id="final-misses7">0</span></p>
                 <p>Accuracy: <span id="final-accuracy7">0%</span></p>
@@ -1500,7 +1533,7 @@ class ArtPuzzleGame extends BaseGame {
         if (droppedId === slot.dataset.id) {
             this.score++;
             this.piecesPlacedThisRound++;
-            updateProgressBar(`hud-score${this.gameNum}`, '🎨 Pieces', this.score, 20);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-puzzle-piece"></i> Pieces', this.score, 20);
             slot.classList.add('drop-success');
             playTone(659, 0.2, 'sine', 0.1);
             slot.textContent = '';
@@ -1514,7 +1547,7 @@ class ArtPuzzleGame extends BaseGame {
             }
         } else {
             this.misses++;
-            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Missed', this.misses, 10, true);
+            updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 10, true);
             slot.classList.add('drop-fail');
             playTone(200, 0.3, 'square', 0.05);
             speak("That piece doesn't fit here. Try another spot.", true);
@@ -1578,7 +1611,7 @@ class SentenceScribeGame extends BaseGame {
             if (this.typedIndex === this.currentSentence.length) {
                 clearTimeout(this.sentenceTimeout);
                 this.score++;
-                updateProgressBar(`hud-score${this.gameNum}`, '📜 Sentences', this.score, 15);
+                updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-scroll"></i> Sentences', this.score, 15);
                 sentenceEl.classList.add('correct');
                 playTone(880, 0.3, 'sine', 0.1);
                 setTimeout(() => {
@@ -1588,7 +1621,7 @@ class SentenceScribeGame extends BaseGame {
             }
         } else {
             this.misses++;
-            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Missed', this.misses, 20, true);
+            updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 20, true);
             sentenceEl.classList.add('wrong');
             playTone(200, 0.2, 'square', 0.05);
             speak("Oops!", true);
@@ -1599,12 +1632,12 @@ class SentenceScribeGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('📜 Sentences', '❌ Missed')}
+            ${this._createHud('<i class="fa-solid fa-scroll"></i> Sentences', '<i class="fa-solid fa-xmark"></i> Missed')}
             <div id="sentence-scribe-canvas" class="game-canvas" style="border-color: #ffb8b8; background: rgba(255, 230, 230, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div id="current-sentence" style="font-size: 4vw; max-width: 80%; font-weight: bold; color: #ff6b35; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); user-select: none; text-align: center; background: rgba(255,255,255,0.8); padding: 20px; border-radius: 15px;"></div>
             </div>
             <div id="game-over8" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>📜 Performance Report 📜</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Sentences Typed: <span id="final-score8">0</span></p>
                 <p>Mistakes: <span id="final-misses8">0</span></p>
                 <p>Accuracy: <span id="final-accuracy8">0%</span></p>
@@ -1667,16 +1700,16 @@ class StorySelfGame extends BaseGame {
         super.start(container);
         this.currentPromptIndex = 0;
         const html = `
-            ${this._createHud('✍️ Stories')}
+            ${this._createHud('<i class="fa-solid fa-pen-fancy"></i> Stories')}
             <div id="story-self-canvas" class="game-canvas" style="border-color: #feca57; background: rgba(255, 248, 225, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div id="story-self-area" style="text-align: center; width: 80%; max-width: 800px;">
                     <h2 id="story-prompt" style="font-size: 4vw; color: #ff6b35;"></h2>
                     <textarea id="story-input" placeholder="Type your sentence here..." style="width: 100%; height: 100px; font-size: 2vw; padding: 10px; border-radius: 15px; border: 3px solid #4ecdc4; margin-top: 20px; font-family: inherit;"></textarea>
-                    <button id="story-submit" class="btn btn-primary" style="margin-top: 20px; font-size: 24px;">Done! 👍</button>
+                    <button id="story-submit" class="btn btn-primary" style="margin-top: 20px; font-size: 24px;">Done! <i class="fa-solid fa-circle-check"></i></button>
                 </div>
             </div>
             <div id="game-over9" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>✍️ Performance Report ✍️</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>You wrote <span id="final-score9">0</span> sentences about yourself!</p>
                 <p>Great job expressing yourself!</p>
                 <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Story Self', currentGame.score, 0, 100)">Print Certificate</button>
@@ -1703,7 +1736,7 @@ class StorySelfGame extends BaseGame {
         const answer = document.getElementById('story-input').value.trim();
         if (answer.length > 2) {
             this.score++;
-            updateProgressBar(`hud-score${this.gameNum}`, '✍️ Stories', this.score, this.prompts.length);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-pen-fancy"></i> Stories', this.score, this.prompts.length);
             playTone(880, 0.3, 'sine', 0.1);
             this.currentPromptIndex++;
             this.updatePrompt();
@@ -1739,7 +1772,7 @@ class PcPartPickerGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🖱️ Found', '❌ Missed')}
+            ${this._createHud('<i class="fa-solid fa-computer-mouse"></i> Found', '<i class="fa-solid fa-xmark"></i> Missed')}
             <div id="pc-part-picker-canvas" class="game-canvas" style="border-color: #48dbfb; background: rgba(210, 245, 255, 0.2);">
                 <div id="pc-picker-container" style="text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     <h2 id="part-prompt" style="font-size: 4vw; color: #ff6b35; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);"></h2>
@@ -1747,7 +1780,7 @@ class PcPartPickerGame extends BaseGame {
                 </div>
             </div>
             <div id="game-over10" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🖱️ Performance Report 🖱️</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Parts Found: <span id="final-score10">0</span></p>
                 <p>Misses: <span id="final-misses10">0</span></p>
                 <p>Accuracy: <span id="final-accuracy10">0%</span></p>
@@ -1801,7 +1834,7 @@ class PcPartPickerGame extends BaseGame {
 
         if (clickedPartName === this.currentPart.name) {
             this.score++;
-            updateProgressBar(`hud-score${this.gameNum}`, '🖱️ Found', this.score, this.parts.length);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-computer-mouse"></i> Found', this.score, this.parts.length);
             playTone(880, 0.2, 'sine', 0.1);
             e.target.style.transition = 'transform 0.3s, opacity 0.3s';
             e.target.style.transform = 'scale(0)';
@@ -1809,7 +1842,7 @@ class PcPartPickerGame extends BaseGame {
             setTimeout(() => this.nextPart(), 300);
         } else {
             this.misses++;
-            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Missed', this.misses, 5, true);
+            updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Missed', this.misses, 5, true);
             playTone(200, 0.3, 'square', 0.05);
             speak("Oops, that's not it. Try again.", true);
             e.target.style.animation = 'shake 0.5s ease';
@@ -1856,16 +1889,16 @@ class ParagraphProGame extends BaseGame {
         super.start(container);
         this.currentPromptIndex = 0;
         const html = `
-            ${this._createHud('📝 Paragraphs')}
+            ${this._createHud('<i class="fa-solid fa-file-lines"></i> Paragraphs')}
             <div id="paragraph-pro-canvas" class="game-canvas" style="border-color: #82ccdd; background: rgba(220, 240, 255, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div id="paragraph-pro-area" style="text-align: center; width: 80%; max-width: 900px;">
                     <h2 id="paragraph-prompt" style="font-size: clamp(24px, 4vw, 38px); color: #ff6b35;"></h2>
                     <textarea id="paragraph-input" placeholder="Start writing your paragraph here..." style="width: 100%; height: 150px; font-size: clamp(16px, 2vw, 22px); padding: 15px; border-radius: 15px; border: 3px solid #4ecdc4; margin-top: 20px; font-family: inherit; box-sizing: border-box;"></textarea>
-                    <button id="paragraph-submit" class="btn btn-primary" style="margin-top: 20px; font-size: 24px;">I'm Done! 🚀</button>
+                    <button id="paragraph-submit" class="btn btn-primary" style="margin-top: 20px; font-size: 24px;">I'm Done! <i class="fa-solid fa-rocket"></i></button>
                 </div>
             </div>
             <div id="game-over12" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 215, 0, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>📝 Performance Report 📝</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>You wrote <span id="final-score12">0</span> amazing paragraphs!</p>
                 <p>Fantastic writing!</p>
                 <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Paragraph Pro', currentGame.score, 0, 100)">Print Certificate</button>
@@ -1891,7 +1924,7 @@ class ParagraphProGame extends BaseGame {
         const sentenceCount = (answer.match(/[.!?]/g) || []).length;
         if (answer.length > 20 && sentenceCount >= 2) {
             this.score++;
-            updateProgressBar(`hud-score${this.gameNum}`, '📝 Paragraphs', this.score, 10);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-file-lines"></i> Paragraphs', this.score, 10);
             playTone(880, 0.4, 'sine', 0.1);
             this.currentPromptIndex++;
             this.updatePrompt();
@@ -1923,7 +1956,14 @@ class ParagraphProGame extends BaseGame {
 class NumberMatchingGame extends BaseGame {
     constructor(level) {
         super(11, level, "Count the items! Drag the number to the box with the matching amount.");
-        this.items = ['⭐', '🍌', '🍎', '❤️', '🚗', '🎈'];
+        this.items = [
+            '<i class="fa-solid fa-star" style="color: #f1c40f;"></i>',
+            '<i class="fa-solid fa-banana" style="color: #e6a817;"></i>',
+            '<i class="fa-solid fa-apple-whole" style="color: #e74c3c;"></i>',
+            '<i class="fa-solid fa-heart" style="color: #e84393;"></i>',
+            '<i class="fa-solid fa-car" style="color: #2d3436;"></i>',
+            '<i class="fa-solid fa-rocket" style="color: #0984e3;"></i>'
+        ];
         this.tutorialActive = false;
         this.tutorialStep = 0;
     }
@@ -1931,7 +1971,7 @@ class NumberMatchingGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🔢 Matched', '❌ Wrong')}
+            ${this._createHud('<i class="fa-solid fa-hashtag"></i> Matched', '<i class="fa-solid fa-xmark"></i> Wrong')}
             <div id="number-matching-canvas" class="game-canvas" style="border-color: #4ecdc4; background: rgba(220, 250, 245, 0.2);">
                 <div id="number-matching-area">
                     <div id="number-drag-container"></div>
@@ -1939,7 +1979,7 @@ class NumberMatchingGame extends BaseGame {
                 </div>
             </div>
             <div id="game-over11" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(135, 206, 235, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🔢 Performance Report 🔢</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Performance Report</h2>
                 <p>Correct Matches: <span id="final-score11">0</span></p>
                 <p>Misses: <span id="final-misses11">0</span></p>
                 <p>Accuracy: <span id="final-accuracy11">0%</span></p>
@@ -1997,7 +2037,7 @@ class NumberMatchingGame extends BaseGame {
             const groupEl = document.createElement('div');
             groupEl.className = 'item-group';
             groupEl.dataset.count = num;
-            groupEl.innerHTML = `<span>${itemEmoji}</span>`.repeat(num);
+            groupEl.innerHTML = `<span class="match-item">${itemEmoji}</span>`.repeat(num);
             groupEl.addEventListener('dragover', e => e.preventDefault());
             groupEl.addEventListener('drop', this.handleDrop.bind(this));
             groupsContainer.appendChild(groupEl);
@@ -2079,14 +2119,14 @@ class NumberMatchingGame extends BaseGame {
 
         if (group && parseInt(group.dataset.count, 10) === droppedNum) {
             this.score++;
-            updateProgressBar(`hud-score${this.gameNum}`, '🔢 Matched', this.score, 20);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-hashtag"></i> Matched', this.score, 20);
             group.classList.add('drop-success');
             playTone(880, 0.3, 'sine', 0.1);
             speak("That's it!", true);
             setTimeout(() => this.setupRound(), 1000);
         } else {
             this.misses++;
-            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Wrong', this.misses, 3, true);
+            updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Wrong', this.misses, 3, true);
             if (group) group.classList.add('drop-fail');
             playTone(200, 0.3, 'square', 0.05);
             speak("Not quite, try again!", true);
@@ -2130,10 +2170,10 @@ class CandySorterGame extends BaseGame {
     constructor(level) {
         super(13, level, "Let's sort some candy! Drag each sweet treat to the matching jar.");
         this.candies = [
-            { emoji: '🍭', type: 'lollipop' },
-            { emoji: '🍬', type: 'candy' },
-            { emoji: '🍫', type: 'chocolate' },
-            { emoji: '🍩', type: 'donut' }
+            { icon: 'fa-candy-cane', color: '#ff4757', type: 'lollipop' },
+            { icon: 'fa-ice-cream', color: '#ff9ff3', type: 'candy' },
+            { icon: 'fa-cookie', color: '#a0522d', type: 'chocolate' },
+            { icon: 'fa-cake-candles', color: '#feca57', type: 'donut' }
         ];
         this.candyTypes = this.candies.map(c => c.type);
         this.currentCandy = null;
@@ -2147,12 +2187,12 @@ class CandySorterGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🍬 Sorted', '❌ Wrong')}
+            ${this._createHud('<i class="fa-solid fa-candy-cane"></i> Sorted', '<i class="fa-solid fa-xmark"></i> Wrong')}
             <div id="candy-sorter-canvas" class="game-canvas" style="border-color: #ffc0cb; background: rgba(255, 230, 235, 0.2);">
                 <div id="candy-jars13" style="position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 30px; z-index: 1;"></div>
             </div>
             <div id="game-over13" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(255, 182, 193, 0.9); padding: 40px; border-radius: 20px; color: #4a4a4a; display: none;">
-                <h2>🍬 Sweet Sorting! 🍬</h2>
+                <h2><i class="fa-solid fa-candy-cane" style="color:#ff6b81;"></i> Sweet Sorting!</h2>
                 <p>Correctly Sorted: <span id="final-score13">0</span></p>
                 <p>Mistakes: <span id="final-misses13">0</span></p>
                 <p>Accuracy: <span id="final-accuracy13">0%</span></p>
@@ -2161,7 +2201,7 @@ class CandySorterGame extends BaseGame {
             </div>`;
         const css = `
             .candy-item { position: absolute; font-size: 50px; cursor: grab; transition: transform 0.2s; z-index: 10; user-select: none; filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3)); }
-            .candy-item.dragging { transform: rotate(15deg) scale(1.2); opacity: 0.8; cursor: grabbing; }
+            .candy-item.dragging { transform: rotate(15deg) scale(1.2); opacity: 0.8; cursor: grabbing; } .candy-jar-icon { font-size: 42px; }
             .candy-jar { width: 100px; height: 120px; border: 5px solid #ff6b35; border-radius: 10px 10px 30px 30px; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 40px; transition: all 0.3s; position: relative; }
             .candy-jar::before { content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 80px; height: 15px; background: #ff6b35; border-radius: 10px; }
             .candy-jar.drop-success { border-color: #4ecdc4; background: rgba(78, 205, 196, 0.3); transform: scale(1.1); }
@@ -2173,7 +2213,7 @@ class CandySorterGame extends BaseGame {
         this.candies.slice(0, this.settings.choices).forEach(candyInfo => {
             const jar = document.createElement('div');
             jar.className = 'candy-jar';
-            jar.textContent = candyInfo.emoji;
+            jar.innerHTML = '<i class="fa-solid ' + candyInfo.icon + ' candy-jar-icon" style="color: ' + candyInfo.color + ';"></i>';
             jar.dataset.type = candyInfo.type;
             jarsEl.appendChild(jar);
         });
@@ -2192,7 +2232,7 @@ class CandySorterGame extends BaseGame {
 
         const candyEl = document.createElement('div');
         candyEl.className = 'candy-item';
-        candyEl.textContent = candyInfo.emoji;
+        candyEl.innerHTML = '<i class="fa-solid ' + candyInfo.icon + '" style="color: ' + candyInfo.color + ';"></i>';
         candyEl.dataset.type = candyInfo.type;
         candyEl.style.left = `${Math.random() * (canvas.offsetWidth - 100) + 50}px`;
         candyEl.style.top = '20px';
@@ -2247,13 +2287,13 @@ class CandySorterGame extends BaseGame {
                 droppedOnJar = true;
                 if (jar.dataset.type === droppedCandyType) {
                     this.score++;
-                    updateProgressBar(`hud-score${this.gameNum}`, '🍬 Sorted', this.score, 30);
+                    updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-candy-cane"></i> Sorted', this.score, 30);
                     jar.classList.add('drop-success');
                     playTone(659, 0.2, 'sine', 0.1);
                     setTimeout(() => jar.classList.remove('drop-success'), 500);
                 } else {
                     this.misses++;
-                    updateProgressBar(`hud-misses${this.gameNum}`, '❌ Wrong', this.misses, 5, true);
+                    updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Wrong', this.misses, 5, true);
                     jar.classList.add('drop-fail');
                     playTone(200, 0.3, 'square', 0.05);
                     speak("Oops, wrong jar!", true);
@@ -2309,12 +2349,12 @@ class MemoryMelodyGame extends BaseGame {
     start(container) {
         super.start(container);
         const html = `
-            ${this._createHud('🧠 Round')}
+            ${this._createHud('<i class="fa-solid fa-brain"></i> Round')}
             <div id="memory-melody-canvas" class="game-canvas" style="border-color: #7f8fa6; background: rgba(200, 200, 210, 0.2); display: flex; align-items: center; justify-content: center;">
                 <div id="memory-pads-container"></div>
             </div>
             <div id="game-over14" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(127, 143, 166, 0.9); padding: 40px; border-radius: 20px; color: white; display: none;">
-                <h2>🧠 Great Memory! 🧠</h2>
+                <h2><i class="fa-solid fa-brain" style="color:#7f8fa6;"></i> Great Memory!</h2>
                 <p>You reached Round: <span id="final-score14">0</span></p>
                 <p>Your high score for this game is your final round number!</p>
                 <button class="btn btn-primary btn-small" onclick="currentGame.printCertificate('Memory Melody', currentGame.score, 0, 100)">Print Certificate</button>
@@ -2349,7 +2389,7 @@ class MemoryMelodyGame extends BaseGame {
         this.canClick = false;
         this.playerSequence = [];
         this.score++;
-        updateProgressBar(`hud-score${this.gameNum}`, '🧠 Round', this.score, 20);
+        updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-brain"></i> Round', this.score, 20);
 
         const nextPadIndex = Math.floor(Math.random() * this.pads.length);
         this.sequence.push(nextPadIndex);
@@ -2449,7 +2489,7 @@ class MultipleChoiceGame extends BaseGame {
         this.currentQuestionIndex = 0;
 
         const html = `
-            ${this._createHud('✔️ Correct', '❌ Incorrect')}
+            ${this._createHud('<i class="fa-solid fa-circle-check"></i> Correct', '<i class="fa-solid fa-xmark"></i> Incorrect')}
             <div id="multiple-choice-canvas" class="game-canvas" style="border-color: #a29bfe; background: rgba(223, 220, 255, 0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
                 <img id="question-image" src="" alt="Question Image" style="max-height: 200px; max-width: 90%; border-radius: 15px; margin-bottom: 20px; display: none; object-fit: contain;">
                 <h2 id="question-text" style="font-size: clamp(24px, 3vw, 32px); color: #6c5ce7; text-align: center; margin-bottom: 30px; max-width: 90%;">Loading Question...</h2>
@@ -2458,7 +2498,7 @@ class MultipleChoiceGame extends BaseGame {
                 </div>
             </div>
             <div id="game-over15" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(162, 155, 254, 0.9); padding: 40px; border-radius: 20px; color: white; display: none;">
-                <h2>🧠 Challenge Complete! 🧠</h2>
+                <h2><i class="fa-solid fa-medal" style="color:#f39c12;"></i> Challenge Complete!</h2>
                 <p>Correct Answers: <span id="final-correct15">0</span></p>
                 <p>Incorrect Answers: <span id="final-incorrect15">0</span></p>
                 <p>Accuracy: <span id="final-accuracy15">0%</span></p>
@@ -2539,13 +2579,13 @@ class MultipleChoiceGame extends BaseGame {
 
         if (selectedOption === currentQuestion.correctAnswer) {
             this.correctAnswers++;
-            updateProgressBar(`hud-score${this.gameNum}`, '✔️ Correct', this.correctAnswers, this.questions.length);
+            updateProgressBar(`hud-score${this.gameNum}`, '<i class="fa-solid fa-circle-check"></i> Correct', this.correctAnswers, this.questions.length);
             button.classList.add('correct');
             playTone(659, 0.2, 'sine', 0.1); // Correct answer sound
             speak("Correct!", true);
         } else {
             this.incorrectAnswers++;
-            updateProgressBar(`hud-misses${this.gameNum}`, '❌ Incorrect', this.incorrectAnswers, this.questions.length);
+            updateProgressBar(`hud-misses${this.gameNum}`, '<i class="fa-solid fa-xmark"></i> Incorrect', this.incorrectAnswers, this.questions.length);
             button.classList.add('incorrect');
             playTone(200, 0.3, 'square', 0.05); // Incorrect answer sound
             speak(`Incorrect. The answer was ${currentQuestion.correctAnswer}.`, true);
@@ -2629,34 +2669,26 @@ window.clearTimeouts = function() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    loadDefaultStudent(); // Automatically load a default student on page load
+    initPlayer(); // Load the local player profile — no login, no Student ID needed
 
     // Mobile audio prompt
     if (window.matchMedia('(pointer: coarse)').matches) {
         document.getElementById('mobile-prompt').style.display = 'flex';
     }
     document.getElementById('badge-btn').addEventListener('click', showBadges);
-    document.getElementById('play-btn').addEventListener('click', findAndPlay);
+    document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
+    document.getElementById('close-leaderboard-btn').addEventListener('click', hideLeaderboard);
     document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
     document.getElementById('close-settings-btn').addEventListener('click', hideSettingsModal);
     document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoice);
     document.getElementById('custom-art-btn').addEventListener('click', () => { hideSettingsModal(); showArtCustomModal(); });
     document.getElementById('hide-badges-btn').addEventListener('click', hideBadges);
+    document.getElementById('reset-progress-btn').addEventListener('click', resetMyProgress);
     document.getElementById('reset-art-btn').addEventListener('click', resetCustomArt);
     document.getElementById('close-art-btn').addEventListener('click', hideArtCustomModal);
     document.getElementById('mobile-start-btn').addEventListener('click', hideMobilePrompt);
 
-    // Attach event listeners for actions that still make sense
     document.addEventListener('keydown', globalKeyHandler);
-    document.getElementById('delete-student-btn').addEventListener('click', deleteStudentRecord); // This button is in the settings modal
-    // document.getElementById('save-profile-btn').addEventListener('click', saveProfileChanges); // This button was removed
-
-    // Use event delegation for the edit button which might be added dynamically
-    document.getElementById('session-info').addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'edit-profile-btn') {
-            showEditProfileForm();
-        }
-    });
 
     // Use event delegation for all game cards
     document.getElementById('games-section-wrapper').addEventListener('click', (e) => {
